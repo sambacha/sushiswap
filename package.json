@@ -85,6 +85,6 @@
     "ts-generator": "^0.1.1",
     "typechain": "^4.0.1",
     "solidity-coverage": "^0.7.13",
-    "@boringcrypto/boring-solidity": "boringcrypto/BoringSolidity#e06e943"
+    "node_modules/@boringcrypto/boring-solidity": "boringcrypto/BoringSolidity#e06e943"
   }
 }
