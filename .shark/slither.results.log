@@ -1,0 +1,257 @@
+$ slither . --triage-mode
+'npx hardhat compile' running
+
+
+(node:7858) Warning: Accessing non-existent property 'VERSION' of module exports inside circular dependency
+(Use `node --trace-warnings ...` to show where the warning was created)
+Error HH411: The library node_modules, imported from contracts/interfaces/IMasterChef.sol, is not installed. Try installing it using npm.
+For more info go to https://hardhat.org/HH411 or run Hardhat with --show-stack-traces
+
+ERROR:ContractSolcParsing:Missing params '_msgSender()'
+INFO:Detectors:
+0: MasterChef (contracts/MasterChef.sol#32-297) contract sets array length with a user-controlled value:
+	- poolInfo.push(PoolInfo(_lpToken,_allocPoint,lastRewardBlock,0)) (contracts/MasterChef.sol#117-124)
+1: UniswapV2Factory (contracts/uniswapv2/UniswapV2Factory.sol#8-62) contract sets array length with a user-controlled value:
+	- allPairs.push(pair) (contracts/uniswapv2/UniswapV2Factory.sol#43)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#array-length-assignment
+Results to hide during next runs: "0,1,...,2" or "All" (enter to not hide results):
+INFO:Detectors:
+0: UniswapV2Pair._update(uint256,uint256,uint112,uint112) (contracts/uniswapv2/UniswapV2Pair.sol#79-92) uses a weak PRNG: "blockTimestamp = uint32(block.timestamp % 2 ** 32) (contracts/uniswapv2/UniswapV2Pair.sol#81)"
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#weak-PRNG
+Results to hide during next runs: "0,1,...,1" or "All" (enter to not hide results):
+INFO:Detectors:
+0: Ownable is re-used:
+	- contracts/Ownable.sol#19-64
+	- node_modules/@openzeppelin/contracts/access/Ownable.sol#18-68
+1: IERC20 is re-used:
+	- contracts/interfaces/IERC20.sol#4-15
+	- node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol#8-77
+2: SafeERC20 is re-used:
+	- contracts/libraries/SafeERC20.sol#6-31
+	- node_modules/@openzeppelin/contracts/token/ERC20/SafeERC20.sol#18-75
+3: SafeMath is re-used:
+	- contracts/libraries/SafeMath.sol#4-12
+	- node_modules/@openzeppelin/contracts/math/SafeMath.sol#18-214
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#name-reused
+Results to hide during next runs: "0,1,...,4" or "All" (enter to not hide results):
+INFO:Detectors:
+0: MasterChef.pendingSushi(uint256,address) (contracts/MasterChef.sol#178-199) performs a multiplication on the result of a division:
+	-sushiReward = multiplier.mul(sushiPerBlock).mul(pool.allocPoint).div(totalAllocPoint) (contracts/MasterChef.sol#190-193)
+	-accSushiPerShare = accSushiPerShare.add(sushiReward.mul(1e12).div(lpSupply)) (contracts/MasterChef.sol#194-196)
+1: MasterChef.updatePool(uint256) (contracts/MasterChef.sol#210-231) performs a multiplication on the result of a division:
+	-sushiReward = multiplier.mul(sushiPerBlock).mul(pool.allocPoint).div(totalAllocPoint) (contracts/MasterChef.sol#221-224)
+	-pool.accSushiPerShare = pool.accSushiPerShare.add(sushiReward.mul(1e12).div(lpSupply)) (contracts/MasterChef.sol#227-229)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#divide-before-multiply
+Results to hide during next runs: "0,1,...,2" or "All" (enter to not hide results):
+INFO:Detectors:
+0: MasterChef.migrate(uint256) (contracts/MasterChef.sol#148-157) uses a dangerous strict equality:
+	- require(bool,string)(bal == newLpToken.balanceOf(address(this)),migrate: bad) (contracts/MasterChef.sol#155)
+1: MasterChef.updatePool(uint256) (contracts/MasterChef.sol#210-231) uses a dangerous strict equality:
+	- lpSupply == 0 (contracts/MasterChef.sol#216)
+2: Migrator.migrate(IUniswapV2Pair) (contracts/Migrator.sol#28-46) uses a dangerous strict equality:
+	- lp == 0 (contracts/Migrator.sol#39)
+3: SushiBar.enter(uint256) (contracts/SushiBar.sol#23-39) uses a dangerous strict equality:
+	- totalShares == 0 || totalSushi == 0 (contracts/SushiBar.sol#29)
+4: SushiToken._writeCheckpoint(address,uint32,uint256,uint256) (contracts/SushiToken.sol#216-234) uses a dangerous strict equality:
+	- nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == blockNumber (contracts/SushiToken.sol#226)
+5: UniswapV2Pair._safeTransfer(address,address,uint256) (contracts/uniswapv2/UniswapV2Pair.sol#50-53) uses a dangerous strict equality:
+	- require(bool,string)(success && (data.length == 0 || abi.decode(data,(bool))),UniswapV2: TRANSFER_FAILED) (contracts/uniswapv2/UniswapV2Pair.sol#52)
+6: UniswapV2Pair.mint(address) (contracts/uniswapv2/UniswapV2Pair.sol#116-144) uses a dangerous strict equality:
+	- _totalSupply == 0 (contracts/uniswapv2/UniswapV2Pair.sol#125)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dangerous-strict-equalities
+Results to hide during next runs: "0,1,...,7" or "All" (enter to not hide results):
+INFO:Detectors:
+0: Reentrancy in MasterChef.add(uint256,IERC20,bool) (contracts/MasterChef.sol#106-125):
+	External calls:
+	- massUpdatePools() (contracts/MasterChef.sol#112)
+		- sushi.mint(devaddr,sushiReward.div(10)) (contracts/MasterChef.sol#225)
+		- sushi.mint(address(this),sushiReward) (contracts/MasterChef.sol#226)
+	State variables written after the call(s):
+	- poolInfo.push(PoolInfo(_lpToken,_allocPoint,lastRewardBlock,0)) (contracts/MasterChef.sol#117-124)
+	- totalAllocPoint = totalAllocPoint.add(_allocPoint) (contracts/MasterChef.sol#116)
+1: Reentrancy in UniswapV2Pair.burn(address) (contracts/uniswapv2/UniswapV2Pair.sol#147-169):
+	External calls:
+	- _safeTransfer(_token0,to,amount0) (contracts/uniswapv2/UniswapV2Pair.sol#161)
+		- (success,data) = token.call(abi.encodeWithSelector(SELECTOR,to,value)) (contracts/uniswapv2/UniswapV2Pair.sol#51)
+	- _safeTransfer(_token1,to,amount1) (contracts/uniswapv2/UniswapV2Pair.sol#162)
+		- (success,data) = token.call(abi.encodeWithSelector(SELECTOR,to,value)) (contracts/uniswapv2/UniswapV2Pair.sol#51)
+	State variables written after the call(s):
+	- _update(balance0,balance1,_reserve0,_reserve1) (contracts/uniswapv2/UniswapV2Pair.sol#166)
+		- blockTimestampLast = blockTimestamp (contracts/uniswapv2/UniswapV2Pair.sol#90)
+	- kLast = uint256(reserve0).mul(reserve1) (contracts/uniswapv2/UniswapV2Pair.sol#167)
+	- _update(balance0,balance1,_reserve0,_reserve1) (contracts/uniswapv2/UniswapV2Pair.sol#166)
+		- reserve0 = uint112(balance0) (contracts/uniswapv2/UniswapV2Pair.sol#88)
+	- _update(balance0,balance1,_reserve0,_reserve1) (contracts/uniswapv2/UniswapV2Pair.sol#166)
+		- reserve1 = uint112(balance1) (contracts/uniswapv2/UniswapV2Pair.sol#89)
+2: Reentrancy in UniswapV2Factory.createPair(address,address) (contracts/uniswapv2/UniswapV2Factory.sol#30-45):
+	External calls:
+	- UniswapV2Pair(pair).initialize(token0,token1) (contracts/uniswapv2/UniswapV2Factory.sol#40)
+	State variables written after the call(s):
+	- getPair[token0][token1] = pair (contracts/uniswapv2/UniswapV2Factory.sol#41)
+	- getPair[token1][token0] = pair (contracts/uniswapv2/UniswapV2Factory.sol#42)
+3: Reentrancy in MasterChef.deposit(uint256,uint256) (contracts/MasterChef.sol#234-253):
+	External calls:
+	- updatePool(_pid) (contracts/MasterChef.sol#237)
+		- sushi.mint(devaddr,sushiReward.div(10)) (contracts/MasterChef.sol#225)
+		- sushi.mint(address(this),sushiReward) (contracts/MasterChef.sol#226)
+	- safeSushiTransfer(msg.sender,pending) (contracts/MasterChef.sol#243)
+		- sushi.transfer(_to,sushiBal) (contracts/MasterChef.sol#286)
+		- sushi.transfer(_to,_amount) (contracts/MasterChef.sol#288)
+	- pool.lpToken.safeTransferFrom(address(msg.sender),address(this),_amount) (contracts/MasterChef.sol#245-249)
+	State variables written after the call(s):
+	- user.amount = user.amount.add(_amount) (contracts/MasterChef.sol#250)
+	- user.rewardDebt = user.amount.mul(pool.accSushiPerShare).div(1e12) (contracts/MasterChef.sol#251)
+4: Reentrancy in MasterChef.emergencyWithdraw(uint256) (contracts/MasterChef.sol#273-280):
+	External calls:
+	- pool.lpToken.safeTransfer(address(msg.sender),user.amount) (contracts/MasterChef.sol#276)
+	State variables written after the call(s):
+	- user.amount = 0 (contracts/MasterChef.sol#278)
+	- user.rewardDebt = 0 (contracts/MasterChef.sol#279)
+5: Reentrancy in MasterChef.migrate(uint256) (contracts/MasterChef.sol#148-157):
+	External calls:
+	- lpToken.safeApprove(address(migrator),bal) (contracts/MasterChef.sol#153)
+	- newLpToken = migrator.migrate(lpToken) (contracts/MasterChef.sol#154)
+	State variables written after the call(s):
+	- pool.lpToken = newLpToken (contracts/MasterChef.sol#156)
+6: Reentrancy in MasterChef.set(uint256,uint256,bool) (contracts/MasterChef.sol#128-140):
+	External calls:
+	- massUpdatePools() (contracts/MasterChef.sol#134)
+		- sushi.mint(devaddr,sushiReward.div(10)) (contracts/MasterChef.sol#225)
+		- sushi.mint(address(this),sushiReward) (contracts/MasterChef.sol#226)
+	State variables written after the call(s):
+	- poolInfo[_pid].allocPoint = _allocPoint (contracts/MasterChef.sol#139)
+	- totalAllocPoint = totalAllocPoint.sub(poolInfo[_pid].allocPoint).add(_allocPoint) (contracts/MasterChef.sol#136-138)
+7: Reentrancy in UniswapV2Pair.swap(uint256,uint256,address,bytes) (contracts/uniswapv2/UniswapV2Pair.sol#172-200):
+	External calls:
+	- _safeTransfer(_token0,to,amount0Out) (contracts/uniswapv2/UniswapV2Pair.sol#183)
+		- (success,data) = token.call(abi.encodeWithSelector(SELECTOR,to,value)) (contracts/uniswapv2/UniswapV2Pair.sol#51)
+	- _safeTransfer(_token1,to,amount1Out) (contracts/uniswapv2/UniswapV2Pair.sol#184)
+		- (success,data) = token.call(abi.encodeWithSelector(SELECTOR,to,value)) (contracts/uniswapv2/UniswapV2Pair.sol#51)
+	- IUniswapV2Callee(to).uniswapV2Call(msg.sender,amount0Out,amount1Out,data) (contracts/uniswapv2/UniswapV2Pair.sol#185)
+	State variables written after the call(s):
+	- _update(balance0,balance1,_reserve0,_reserve1) (contracts/uniswapv2/UniswapV2Pair.sol#198)
+		- blockTimestampLast = blockTimestamp (contracts/uniswapv2/UniswapV2Pair.sol#90)
+	- _update(balance0,balance1,_reserve0,_reserve1) (contracts/uniswapv2/UniswapV2Pair.sol#198)
+		- reserve0 = uint112(balance0) (contracts/uniswapv2/UniswapV2Pair.sol#88)
+	- _update(balance0,balance1,_reserve0,_reserve1) (contracts/uniswapv2/UniswapV2Pair.sol#198)
+		- reserve1 = uint112(balance1) (contracts/uniswapv2/UniswapV2Pair.sol#89)
+8: Reentrancy in MasterChef.updatePool(uint256) (contracts/MasterChef.sol#210-231):
+	External calls:
+	- sushi.mint(devaddr,sushiReward.div(10)) (contracts/MasterChef.sol#225)
+	- sushi.mint(address(this),sushiReward) (contracts/MasterChef.sol#226)
+	State variables written after the call(s):
+	- pool.accSushiPerShare = pool.accSushiPerShare.add(sushiReward.mul(1e12).div(lpSupply)) (contracts/MasterChef.sol#227-229)
+	- pool.lastRewardBlock = block.number (contracts/MasterChef.sol#230)
+9: Reentrancy in MasterChef.withdraw(uint256,uint256) (contracts/MasterChef.sol#256-270):
+	External calls:
+	- updatePool(_pid) (contracts/MasterChef.sol#260)
+		- sushi.mint(devaddr,sushiReward.div(10)) (contracts/MasterChef.sol#225)
+		- sushi.mint(address(this),sushiReward) (contracts/MasterChef.sol#226)
+	- safeSushiTransfer(msg.sender,pending) (contracts/MasterChef.sol#265)
+		- sushi.transfer(_to,sushiBal) (contracts/MasterChef.sol#286)
+		- sushi.transfer(_to,_amount) (contracts/MasterChef.sol#288)
+	State variables written after the call(s):
+	- user.amount = user.amount.sub(_amount) (contracts/MasterChef.sol#266)
+	- user.rewardDebt = user.amount.mul(pool.accSushiPerShare).div(1e12) (contracts/MasterChef.sol#267)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-1
+Results to hide during next runs: "0,1,...,10" or "All" (enter to not hide results):
+INFO:Detectors:
+0: UniswapV2Router02._swap(uint256[],address[],address).i (contracts/uniswapv2/UniswapV2Router02.sol#214) is a local variable never initialized
+1: UniswapV2Router02._swapSupportingFeeOnTransferTokens(address[],address).i (contracts/uniswapv2/UniswapV2Router02.sol#323) is a local variable never initialized
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#uninitialized-local-variables
+Results to hide during next runs: "0,1,...,2" or "All" (enter to not hide results):
+INFO:Detectors:
+0: MasterChef.safeSushiTransfer(address,uint256) (contracts/MasterChef.sol#283-290) ignores return value by sushi.transfer(_to,sushiBal) (contracts/MasterChef.sol#286)
+1: MasterChef.safeSushiTransfer(address,uint256) (contracts/MasterChef.sol#283-290) ignores return value by sushi.transfer(_to,_amount) (contracts/MasterChef.sol#288)
+2: Migrator.migrate(IUniswapV2Pair) (contracts/Migrator.sol#28-46) ignores return value by orig.transferFrom(msg.sender,address(orig),lp) (contracts/Migrator.sol#41)
+3: Migrator.migrate(IUniswapV2Pair) (contracts/Migrator.sol#28-46) ignores return value by orig.burn(address(pair)) (contracts/Migrator.sol#42)
+4: Migrator.migrate(IUniswapV2Pair) (contracts/Migrator.sol#28-46) ignores return value by pair.mint(msg.sender) (contracts/Migrator.sol#43)
+5: SushiBar.enter(uint256) (contracts/SushiBar.sol#23-39) ignores return value by sushi.transferFrom(msg.sender,address(this),_amount) (contracts/SushiBar.sol#38)
+6: SushiBar.leave(uint256) (contracts/SushiBar.sol#43-50) ignores return value by sushi.transfer(msg.sender,what) (contracts/SushiBar.sol#49)
+7: SushiRoll.removeLiquidity(address,address,uint256,uint256,uint256,uint256) (contracts/SushiRoll.sol#74-89) ignores return value by pair.transferFrom(msg.sender,address(pair),liquidity) (contracts/SushiRoll.sol#83)
+8: SushiRoll.addLiquidity(address,address,uint256,uint256) (contracts/SushiRoll.sol#102-113) ignores return value by IUniswapV2Pair(pair).mint(msg.sender) (contracts/SushiRoll.sol#112)
+9: SushiRoll._addLiquidity(address,address,uint256,uint256) (contracts/SushiRoll.sol#115-139) ignores return value by factory.createPair(tokenA,tokenB) (contracts/SushiRoll.sol#124)
+10: UniswapV2Router02._addLiquidity(address,address,uint256,uint256,uint256,uint256) (contracts/uniswapv2/UniswapV2Router02.sol#34-61) ignores return value by IUniswapV2Factory(factory).createPair(tokenA,tokenB) (contracts/uniswapv2/UniswapV2Router02.sol#44)
+11: UniswapV2Router02.removeLiquidity(address,address,uint256,uint256,uint256,address,uint256) (contracts/uniswapv2/UniswapV2Router02.sol#104-120) ignores return value by IUniswapV2Pair(pair).transferFrom(msg.sender,pair,liquidity) (contracts/uniswapv2/UniswapV2Router02.sol#114)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unused-return
+Results to hide during next runs: "0,1,...,12" or "All" (enter to not hide results):
+INFO:Detectors:
+0: OwnableData.owner (contracts/Ownable.sol#13) should be constant
+1: OwnableData.pendingOwner (contracts/Ownable.sol#15) should be constant
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#state-variables-that-could-be-declared-constant
+Results to hide during next runs: "0,1,...,2" or "All" (enter to not hide results): ALL
+ERROR:Detectors:Malformed input. Example of valid input: 0,1,2,3
+Results to hide during next runs: "0,1,...,2" or "All" (enter to not hide results):
+INFO:Detectors:
+0: renounceOwnership() should be declared external:
+	- Ownable.renounceOwnership() (node_modules/@openzeppelin/contracts/access/Ownable.sol#54-57)
+1: transferOwnership(address) should be declared external:
+	- Ownable.transferOwnership(address) (node_modules/@openzeppelin/contracts/access/Ownable.sol#63-67)
+2: symbol() should be declared external:
+	- ERC20.symbol() (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#72-74)
+3: decimals() should be declared external:
+	- ERC20.decimals() (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#89-91)
+4: transfer(address,uint256) should be declared external:
+	- ERC20.transfer(address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#115-118)
+5: allowance(address,address) should be declared external:
+	- ERC20.allowance(address,address) (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#123-125)
+6: approve(address,uint256) should be declared external:
+	- ERC20.approve(address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#134-137)
+7: transferFrom(address,address,uint256) should be declared external:
+	- ERC20.transferFrom(address,address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#152-156)
+8: increaseAllowance(address,uint256) should be declared external:
+	- ERC20.increaseAllowance(address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#170-173)
+9: decreaseAllowance(address,uint256) should be declared external:
+	- ERC20.decreaseAllowance(address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#189-192)
+10: add(uint256,IERC20,bool) should be declared external:
+	- MasterChef.add(uint256,IERC20,bool) (contracts/MasterChef.sol#106-125)
+11: set(uint256,uint256,bool) should be declared external:
+	- MasterChef.set(uint256,uint256,bool) (contracts/MasterChef.sol#128-140)
+12: setMigrator(IMigratorChef) should be declared external:
+	- MasterChef.setMigrator(IMigratorChef) (contracts/MasterChef.sol#143-145)
+13: migrate(uint256) should be declared external:
+	- MasterChef.migrate(uint256) (contracts/MasterChef.sol#148-157)
+14: deposit(uint256,uint256) should be declared external:
+	- MasterChef.deposit(uint256,uint256) (contracts/MasterChef.sol#234-253)
+15: withdraw(uint256,uint256) should be declared external:
+	- MasterChef.withdraw(uint256,uint256) (contracts/MasterChef.sol#256-270)
+16: emergencyWithdraw(uint256) should be declared external:
+	- MasterChef.emergencyWithdraw(uint256) (contracts/MasterChef.sol#273-280)
+17: dev(address) should be declared external:
+	- MasterChef.dev(address) (contracts/MasterChef.sol#293-296)
+18: migrate(IUniswapV2Pair) should be declared external:
+	- Migrator.migrate(IUniswapV2Pair) (contracts/Migrator.sol#28-46)
+19: enter(uint256) should be declared external:
+	- SushiBar.enter(uint256) (contracts/SushiBar.sol#23-39)
+20: leave(uint256) should be declared external:
+	- SushiBar.leave(uint256) (contracts/SushiBar.sol#43-50)
+21: migrateWithPermit(address,address,uint256,uint256,uint256,uint256,uint8,bytes32,bytes32) should be declared external:
+	- SushiRoll.migrateWithPermit(address,address,uint256,uint256,uint256,uint256,uint8,bytes32,bytes32) (contracts/SushiRoll.sol#24-39)
+22: mint(address,uint256) should be declared external:
+	- SushiToken.mint(address,uint256) (contracts/SushiToken.sol#12-15)
+23: setDelay(uint256) should be declared external:
+	- Timelock.setDelay(uint256) (contracts/governance/Timelock.sol#53-60)
+24: acceptAdmin() should be declared external:
+	- Timelock.acceptAdmin() (contracts/governance/Timelock.sol#62-68)
+25: setPendingAdmin(address) should be declared external:
+	- Timelock.setPendingAdmin(address) (contracts/governance/Timelock.sol#70-81)
+26: queueTransaction(address,uint256,string,bytes,uint256) should be declared external:
+	- Timelock.queueTransaction(address,uint256,string,bytes,uint256) (contracts/governance/Timelock.sol#83-92)
+27: cancelTransaction(address,uint256,string,bytes,uint256) should be declared external:
+	- Timelock.cancelTransaction(address,uint256,string,bytes,uint256) (contracts/governance/Timelock.sol#94-101)
+28: executeTransaction(address,uint256,string,bytes,uint256) should be declared external:
+	- Timelock.executeTransaction(address,uint256,string,bytes,uint256) (contracts/governance/Timelock.sol#103-128)
+29: quote(uint256,uint256,uint256) should be declared external:
+	- UniswapV2Router02.quote(uint256,uint256,uint256) (contracts/uniswapv2/UniswapV2Router02.sol#404-406)
+30: getAmountOut(uint256,uint256,uint256) should be declared external:
+	- UniswapV2Router02.getAmountOut(uint256,uint256,uint256) (contracts/uniswapv2/UniswapV2Router02.sol#408-416)
+31: getAmountIn(uint256,uint256,uint256) should be declared external:
+	- UniswapV2Router02.getAmountIn(uint256,uint256,uint256) (contracts/uniswapv2/UniswapV2Router02.sol#418-426)
+32: getAmountsOut(uint256,address[]) should be declared external:
+	- UniswapV2Router02.getAmountsOut(uint256,address[]) (contracts/uniswapv2/UniswapV2Router02.sol#428-436)
+33: getAmountsIn(uint256,address[]) should be declared external:
+	- UniswapV2Router02.getAmountsIn(uint256,address[]) (contracts/uniswapv2/UniswapV2Router02.sol#438-446)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#public-function-that-could-be-declared-external
+Results to hide during next runs: "0,1,...,34" or "All" (enter to not hide results):
+INFO:Slither:. analyzed (40 contracts with 40 detectors), 76 result(s) found
+INFO:Slither:Use https://crytic.io/ to get access to additional detectors and Github integration
