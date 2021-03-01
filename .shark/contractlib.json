@@ -1,0 +1,143 @@
+[
+  {
+    "type": "directory",
+    "name": "contracts",
+    "contents": [
+      { "type": "file", "name": "contracts/MasterChef.sol" },
+      { "type": "file", "name": "contracts/MasterChefV2.sol" },
+      { "type": "file", "name": "contracts/Migrator.sol" },
+      { "type": "file", "name": "contracts/Ownable.sol" },
+      { "type": "file", "name": "contracts/SushiBar.sol" },
+      { "type": "file", "name": "contracts/SushiMaker.sol" },
+      { "type": "file", "name": "contracts/SushiRoll.sol" },
+      { "type": "file", "name": "contracts/SushiToken.sol" },
+      {
+        "type": "directory",
+        "name": "contracts/governance",
+        "contents": [
+          { "type": "file", "name": "contracts/governance/Timelock.sol" }
+        ]
+      },
+      {
+        "type": "directory",
+        "name": "contracts/interfaces",
+        "contents": [
+          { "type": "file", "name": "contracts/interfaces/IERC20.sol" },
+          { "type": "file", "name": "contracts/interfaces/IMasterChef.sol" },
+          { "type": "file", "name": "contracts/interfaces/IRewarder.sol" }
+        ]
+      },
+      {
+        "type": "directory",
+        "name": "contracts/libraries",
+        "contents": [
+          { "type": "file", "name": "contracts/libraries/SafeERC20.sol" },
+          { "type": "file", "name": "contracts/libraries/SafeMath.sol" },
+          { "type": "file", "name": "contracts/libraries/SignedSafeMath.sol" }
+        ]
+      },
+      {
+        "type": "directory",
+        "name": "contracts/mocks",
+        "contents": [
+          { "type": "file", "name": "contracts/mocks/ERC20Mock.sol" },
+          { "type": "file", "name": "contracts/mocks/RewarderBrokenMock.sol" },
+          { "type": "file", "name": "contracts/mocks/RewarderMock.sol" },
+          {
+            "type": "file",
+            "name": "contracts/mocks/SushiMakerExploitMock.sol"
+          },
+          {
+            "type": "file",
+            "name": "contracts/mocks/SushiSwapFactoryMock.sol"
+          },
+          { "type": "file", "name": "contracts/mocks/SushiSwapPairMock.sol" },
+          { "type": "file", "name": "contracts/mocks/WETH9Mock.sol" }
+        ]
+      },
+      {
+        "type": "directory",
+        "name": "contracts/uniswapv2",
+        "contents": [
+          { "type": "file", "name": "contracts/uniswapv2/LICENSE" },
+          { "type": "file", "name": "contracts/uniswapv2/README.md" },
+          { "type": "file", "name": "contracts/uniswapv2/UniswapV2ERC20.sol" },
+          {
+            "type": "file",
+            "name": "contracts/uniswapv2/UniswapV2Factory.sol"
+          },
+          { "type": "file", "name": "contracts/uniswapv2/UniswapV2Pair.sol" },
+          {
+            "type": "file",
+            "name": "contracts/uniswapv2/UniswapV2Router02.sol"
+          },
+          {
+            "type": "directory",
+            "name": "contracts/uniswapv2/interfaces",
+            "contents": [
+              {
+                "type": "file",
+                "name": "contracts/uniswapv2/interfaces/IERC20.sol"
+              },
+              {
+                "type": "file",
+                "name": "contracts/uniswapv2/interfaces/IUniswapV2Callee.sol"
+              },
+              {
+                "type": "file",
+                "name": "contracts/uniswapv2/interfaces/IUniswapV2ERC20.sol"
+              },
+              {
+                "type": "file",
+                "name": "contracts/uniswapv2/interfaces/IUniswapV2Factory.sol"
+              },
+              {
+                "type": "file",
+                "name": "contracts/uniswapv2/interfaces/IUniswapV2Pair.sol"
+              },
+              {
+                "type": "file",
+                "name": "contracts/uniswapv2/interfaces/IUniswapV2Router01.sol"
+              },
+              {
+                "type": "file",
+                "name": "contracts/uniswapv2/interfaces/IUniswapV2Router02.sol"
+              },
+              {
+                "type": "file",
+                "name": "contracts/uniswapv2/interfaces/IWETH.sol"
+              }
+            ]
+          },
+          {
+            "type": "directory",
+            "name": "contracts/uniswapv2/libraries",
+            "contents": [
+              {
+                "type": "file",
+                "name": "contracts/uniswapv2/libraries/Math.sol"
+              },
+              {
+                "type": "file",
+                "name": "contracts/uniswapv2/libraries/SafeMath.sol"
+              },
+              {
+                "type": "file",
+                "name": "contracts/uniswapv2/libraries/TransferHelper.sol"
+              },
+              {
+                "type": "file",
+                "name": "contracts/uniswapv2/libraries/UQ112x112.sol"
+              },
+              {
+                "type": "file",
+                "name": "contracts/uniswapv2/libraries/UniswapV2Library.sol"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  { "type": "report", "directories": 7, "files": 41 }
+]

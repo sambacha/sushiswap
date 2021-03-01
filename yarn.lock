@@ -4481,6 +4481,13 @@ hardhat-spdx-license-identifier@^2.0.0:
   resolved "https://registry.yarnpkg.com/hardhat-spdx-license-identifier/-/hardhat-spdx-license-identifier-2.0.3.tgz#6dd89a7e036ede4f7e86fb349eb23daaaad6890f"
   integrity sha512-G4u4I1md0tWaitX6Os7Nq9sYZ/CFdR+ibm7clCksGJ4yrtdHEZxgLjWpJ0WiALF9SoFKt03PwCe9lczDQ/5ADA==
 
+hardhat-tracer@^1.0.0-alpha.1:
+  version "1.0.0-alpha.1"
+  resolved "https://registry.yarnpkg.com/hardhat-tracer/-/hardhat-tracer-1.0.0-alpha.1.tgz#9522edf8cff3ad9f85e81f27746d301ade57fd5c"
+  integrity sha512-X8Xaa+bXeJ7nZyPwrJFVNgmMeNlqFXkz6+hN3Gc6Y/qgzM1bHbNF0RlQCoUOiqKbrvk8wYlvOioN6TZuHUvRfg==
+  dependencies:
+    ethers "^5.0.24"
+
 hardhat-typechain@^0.3.4:
   version "0.3.5"
   resolved "https://registry.yarnpkg.com/hardhat-typechain/-/hardhat-typechain-0.3.5.tgz#8e50616a9da348b33bd001168c8fda9c66b7b4af"
