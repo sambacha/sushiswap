@@ -62,4 +62,4 @@ jobs:
       - name: hardhat test_gas
         run: |
           yarn run test:coverage
-        id: hh_gas
+        id: hh_coverage
