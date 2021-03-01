@@ -13,6 +13,7 @@ require("hardhat-spdx-license-identifier")
 require("hardhat-typechain")
 require("hardhat-watcher")
 require("solidity-coverage")
+require("hardhat-tracer");
 
 require("./tasks")
 
