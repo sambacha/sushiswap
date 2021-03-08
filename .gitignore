@@ -1,10 +1,10 @@
-abi/
-artifacts/
+#abi/
+#artifacts/
 cache/
 coverage/
 exports/
 node_modules/
-types/
+#types/
 package-lock.json
 coverage.json
 .env
