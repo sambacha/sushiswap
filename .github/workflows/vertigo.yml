@@ -1,9 +1,6 @@
-name: slither
+name: vertigo
 on:
   push:
-    paths:
-      - "**.sol"
-      - ".github/workflows/slither.yml"
 
 jobs:
   build:
