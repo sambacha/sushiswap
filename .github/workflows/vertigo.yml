@@ -30,7 +30,7 @@ jobs:
           python-version: 3.8
 
       - name: Install Vertigo
-        run: pip3 install --user eth-vertigo
+        run: pip3 install eth-vertigo
       - name: Prepare output
         run: |
           mkdir -p CI/vertigo-output
