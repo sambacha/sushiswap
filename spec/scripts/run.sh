@@ -1,1 +1,0 @@
-certoraRun.py contracts/MasterChefV2.sol --verify MasterChefV2:spec/sanity.spec --staging
