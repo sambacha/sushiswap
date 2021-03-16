@@ -86,7 +86,7 @@ contract MasterChefV2 is BoringOwnable, BoringBatchable {
     function init(IERC20 dummyToken) external {
         uint256 balance = dummyToken.balanceOf(msg.sender);
         require(balance != 0, "Balance must exceed 0");
-        dummyToken.safeTransferFrom(msg.sender, address(this), balance);
+        dummyToken.transferFrom(msg.sender, address(this), balance);
         dummyToken.approve(address(MASTER_CHEF), balance);
         MASTER_CHEF.deposit(MASTER_PID, balance);
         emit LogInit();
@@ -191,7 +191,7 @@ contract MasterChefV2 is BoringOwnable, BoringBatchable {
         user.rewardDebt = user.rewardDebt.add(int256(amount.mul(pool.accSushiPerShare) / ACC_SUSHI_PRECISION));
 
         // Interactions
-        lpToken[pid].safeTransferFrom(msg.sender, address(this), amount);
+        lpToken[pid].transferFrom(msg.sender, address(this), amount);
 
         emit Deposit(msg.sender, pid, amount, to);
     }
@@ -209,7 +209,7 @@ contract MasterChefV2 is BoringOwnable, BoringBatchable {
         user.amount = user.amount.sub(amount);
 
         // Interactions
-        lpToken[pid].safeTransfer(to, amount);
+        lpToken[pid].transfer(to, amount);
 
         emit Withdraw(msg.sender, pid, amount, to);
     }
@@ -229,7 +229,7 @@ contract MasterChefV2 is BoringOwnable, BoringBatchable {
         user.rewardDebt = accumulatedSushi;
 
         // Interactions
-        SUSHI.safeTransfer(to, _pendingSushi);
+        SUSHI.transfer(to, _pendingSushi);
 
         address _rewarder = address(rewarder[pid]);
         if (_rewarder != address(0)) {
@@ -257,7 +257,7 @@ contract MasterChefV2 is BoringOwnable, BoringBatchable {
         user.amount = 0;
         user.rewardDebt = 0;
         // Note: transfer can fail or succeed if `amount` is zero.
-        lpToken[pid].safeTransfer(to, amount);
+        lpToken[pid].transfer(to, amount);
         emit EmergencyWithdraw(msg.sender, pid, amount, to);
     }
 }
