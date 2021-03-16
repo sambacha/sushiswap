@@ -16,10 +16,17 @@ using Borrower as borrower
  * envfree indicate that the method is not dependent on the environment (msg.value, msg.sender).
  * Methods that are not declared here are assumed to be dependent on env.
  */
+ 
 methods {
 	// Getters for the internals
 	userInfoAmount(uint256 pid, address user) returns (uint256) envfree 
 	userInfoRewardDebt(uint256 pid, address user) returns (int256) envfree 
+
+	//ERC20 
+	balanceOf(address) => DISPATCHER(true) 
+	totalSupply() => DISPATCHER(true)
+	transferFrom(address from, address to, uint256 amount) => DISPATCHER(true)
+	transfer(address to, uint256 amount) => DISPATCHER(true)
 }
 
 // Invariants
