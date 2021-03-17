@@ -42,17 +42,34 @@ methods {
 // }
 
 // Just testing. In progress ...
-rule noChangeToOtherUsersAmount(method f, uint256 pid, address user) {
+rule noChangeToOtherUsersAmount(method f, uint256 pid, uint256 amount,
+								address other, address to) {
 	env e;
 
-	uint256 _userInfoAmount = userInfoAmount(pid, user);
+	uint256 _userInfoAmount = userInfoAmount(pid, other);
 
-	calldataarg args;
-	f(e, args);
+	if (f.selector == deposit(uint256, uint256, address).selector) {
+		deposit(e, pid, amount, to);
+	} else if (f.selector == withdraw(uint256, uint256, address).selector) {
+		require e.msg.sender != other;
 
-	uint256 userInfoAmount_ = userInfoAmount(pid, user);
+		withdraw(e, pid, amount, to);
+	} else if (f.selector == emergencyWithdraw(uint256, address).selector) {
+		require e.msg.sender != other;
 
-	assert(_userInfoAmount == userInfoAmount_, "user amount changed");
+		emergencyWithdraw(e, pid, to);
+	} else {
+		calldataarg args;
+		f(e, args);
+	}
+
+	uint256 userInfoAmount_ = userInfoAmount(pid, other);
+
+	if (other == to) {
+		assert(_userInfoAmount <= userInfoAmount_, "other's user amount changed");
+	} else {
+		assert(_userInfoAmount == userInfoAmount_, "other's user amount changed");
+	}
 }
 
 // rule noChangeToOtherUsersRewardDebt() {
