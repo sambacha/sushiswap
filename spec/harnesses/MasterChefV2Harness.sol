@@ -27,4 +27,6 @@ contract MasterChefV2Harness is MasterChefV2 {
     ////////////////////////////////////////////////////////////////////////////
 
     // If needed ...
+     function batch(bytes[] calldata calls, bool revertOnFail) override external payable returns(bool[] memory successes, bytes[] memory results) {
+     }   
 }
