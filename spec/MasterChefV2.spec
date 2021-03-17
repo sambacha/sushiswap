@@ -16,7 +16,6 @@ using Borrower as borrower
  * envfree indicate that the method is not dependent on the environment (msg.value, msg.sender).
  * Methods that are not declared here are assumed to be dependent on env.
  */
- 
 methods {
 	// Getters for the internals
 	userInfoAmount(uint256 pid, address user) returns (uint256) envfree 
@@ -45,8 +44,6 @@ methods {
 // Just testing. In progress ...
 rule noChangeToOtherUsersAmount(method f, uint256 pid, address user) {
 	env e;
-
-	require user != msg.sender;
 
 	uint256 _userInfoAmount = userInfoAmount(pid, user);
 
