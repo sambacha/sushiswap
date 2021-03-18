@@ -46,18 +46,12 @@ rule noChangeToOtherUsersAmount(method f, uint256 pid, uint256 amount,
 								address other, address to) {
 	env e;
 
+	require other != e.msg.sender;
+
 	uint256 _userInfoAmount = userInfoAmount(pid, other);
 
 	if (f.selector == deposit(uint256, uint256, address).selector) {
 		deposit(e, pid, amount, to);
-	} else if (f.selector == withdraw(uint256, uint256, address).selector) {
-		require e.msg.sender != other;
-
-		withdraw(e, pid, amount, to);
-	} else if (f.selector == emergencyWithdraw(uint256, address).selector) {
-		require e.msg.sender != other;
-
-		emergencyWithdraw(e, pid, to);
 	} else {
 		calldataarg args;
 		f(e, args);
@@ -65,13 +59,35 @@ rule noChangeToOtherUsersAmount(method f, uint256 pid, uint256 amount,
 
 	uint256 userInfoAmount_ = userInfoAmount(pid, other);
 
-	if (other == to) {
+	 // to should only be limited in deposit
+	if (f.selector == deposit(uint256, uint256, address).selector && other == to) {
 		assert(_userInfoAmount <= userInfoAmount_, "other's user amount changed");
 	} else {
 		assert(_userInfoAmount == userInfoAmount_, "other's user amount changed");
 	}
 }
 
-// rule noChangeToOtherUsersRewardDebt() {
-	
-// }
+rule noChangeToOtherUsersRewardDebt(method f, uint256 pid, uint256 amount,
+								address other, address to) {
+	env e;
+
+	require other != e.msg.sender;
+
+	int256 _userInfoRewardDebt = userInfoRewardDebt(pid, other);
+
+	if (f.selector == deposit(uint256, uint256, address).selector) {
+		deposit(e, pid, amount, to);
+	} else {
+		calldataarg args;
+		f(e, args);
+	}
+
+	int256 userInfoRewardDebt_ = userInfoRewardDebt(pid, other);
+
+	 // to should only be limited in deposit
+	if (f.selector == deposit(uint256, uint256, address).selector && other == to) {
+		assert(_userInfoRewardDebt <= userInfoRewardDebt_, "other's user rewardDebt changed");
+	} else {
+		assert(_userInfoRewardDebt == userInfoRewardDebt_, "other's user rewardDebt changed");
+	}
+}
