@@ -22,9 +22,45 @@ contract MasterChefV2Harness is MasterChefV2 {
         return userInfo[pid][user].rewardDebt;
     }
 
+    // currently not in use
+    function poolInfoAccSushiPerShare(uint256 pid) public view returns (uint128) {
+        return poolInfo[pid].accSushiPerShare;
+    }
+
+    // currently not in use
+    function poolInfoLastRewardBlock(uint256 pid) public view returns (uint64) {
+        return poolInfo[pid].lastRewardBlock;
+    }
+
+    function poolInfoAllocPoint(uint256 pid) public view returns (uint64) {
+        return poolInfo[pid].allocPoint;
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     //                           Overrided Methods                            //
     ////////////////////////////////////////////////////////////////////////////
     function batch(bytes[] calldata calls, bool revertOnFail) override external
-            payable returns(bool[] memory successes, bytes[] memory results) { }   
+            payable returns(bool[] memory successes, bytes[] memory results) { }
+
+    ////////////////////////////////////////////////////////////////////////////
+    //                     Helper Functions for Invariants                    //
+    ////////////////////////////////////////////////////////////////////////////
+    // for invariants we need a function that simulate the constructor 
+	function init_state() public { }
+
+    function lpTokenLength() public view returns (uint256) {
+        return lpToken.length;
+    }
+
+    function rewarderLength() public view returns (uint256) {
+        return rewarder.length;
+    }
+
+    function pidToAddressOfLpToken(uint256 pid) public view returns (address) {
+        return address(lpToken[pid]);
+    }
+
+    function pidToAddressOfRewarder(uint256 pid) public view returns (address) {
+        return address(rewarder[pid]);
+    }
 }

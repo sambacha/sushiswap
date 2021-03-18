@@ -21,16 +21,37 @@ methods {
 	userInfoAmount(uint256 pid, address user) returns (uint256) envfree 
 	userInfoRewardDebt(uint256 pid, address user) returns (int256) envfree 
 
-	//ERC20 
+	poolInfoAccSushiPerShare(uint256 pid) returns (uint128) envfree
+	poolInfoLastRewardBlock(uint256 pid) returns (uint64) envfree
+	poolInfoAllocPoint(uint256 pid) returns (uint64) envfree
+
+	// ERC20 
 	balanceOf(address) => DISPATCHER(true) 
 	totalSupply() => DISPATCHER(true)
 	transferFrom(address from, address to, uint256 amount) => DISPATCHER(true)
 	transfer(address to, uint256 amount) => DISPATCHER(true)
+
+	// Helper Invariant Functions
+	poolLength() returns (uint256) envfree
+	lpTokenLength() returns (uint256) envfree
+	rewarderLength() returns (uint256) envfree
+	pidToAddressOfLpToken(uint256 pid) returns (address) envfree
+	pidToAddressOfRewarder(uint256 pid) returns (address) envfree
 }
 
 // Invariants
 
-// In progess ...
+invariant existanceOfPid(uint256 pid, address user)
+	(pidToAddressOfLpToken(pid) == 0) => (poolInfoAllocPoint(pid) == 0 && userInfoAmount(pid, user) == 0 && pidToAddressOfRewarder(pid) == 0)
+
+// the userInfo map size should also be equal? (can't get the size of mapping in solidity)
+invariant integrityOfLength() 
+	poolLength() == lpTokenLength() && lpTokenLength() == rewarderLength()
+
+// It is not possible to compare IRC20 since they are not primitive types, how can I compare them?
+// Are they just addresses? If not, can I compare their addresses? If yes, How do I get their addresses? (Can probably cast to an address)
+invariant singularLpToken(uint256 pid1, uint256 pid2)
+	(pidToAddressOfLpToken(pid1) == pidToAddressOfLpToken(pid2)) => (pid1 == pid2)
 
 // Rules
 
@@ -41,7 +62,6 @@ methods {
 // 	assert(false);
 // }
 
-// Just testing. In progress ...
 rule noChangeToOtherUsersAmount(method f, uint256 pid, uint256 amount,
 								address other, address to) {
 	env e;
@@ -67,6 +87,8 @@ rule noChangeToOtherUsersAmount(method f, uint256 pid, uint256 amount,
 	}
 }
 
+// Failing on deposit, did some digging, but still not sure what's going on.
+// rewardDebt is int256 not uint256, something might be there.
 rule noChangeToOtherUsersRewardDebt(method f, uint256 pid, uint256 amount,
 								address other, address to) {
 	env e;
@@ -91,3 +113,7 @@ rule noChangeToOtherUsersRewardDebt(method f, uint256 pid, uint256 amount,
 		assert(_userInfoRewardDebt == userInfoRewardDebt_, "other's user rewardDebt changed");
 	}
 }
+
+// rule noChangeToOtherPool() {
+
+// }
