@@ -31,15 +31,15 @@ methods {
 	transferFrom(address from, address to, uint256 amount) => DISPATCHER(true)
 	transfer(address to, uint256 amount) => DISPATCHER(true)
 
+	// General Helpers
+	compare(int256 x, int256 y) returns (bool) envfree // Helper for int operations
+
 	// Helper Invariant Functions
 	poolLength() returns (uint256) envfree
 	lpTokenLength() returns (uint256) envfree
 	rewarderLength() returns (uint256) envfree
 	pidToAddressOfLpToken(uint256 pid) returns (address) envfree
 	pidToAddressOfRewarder(uint256 pid) returns (address) envfree
-
-	// Helper for int operations
-	compare(int256 x, int256 y) returns (bool) envfree 
 }
 
 // Invariants
@@ -109,10 +109,10 @@ rule noChangeToOtherUsersRewardDebt(method f, uint256 pid, uint256 amount,
 
 	int256 userInfoRewardDebt_ = userInfoRewardDebt(pid, other);
 
-	 // to should only be limited in deposit
+	// to should only be limited in deposit
 	if (f.selector == deposit(uint256, uint256, address).selector && other == to) {
 
-		assert( compare(_userInfoRewardDebt, userInfoRewardDebt_), "other's user rewardDebt changed");
+		assert(compare(_userInfoRewardDebt, userInfoRewardDebt_), "other's user rewardDebt changed");
 	} else {
 		assert(_userInfoRewardDebt == userInfoRewardDebt_, "other's user rewardDebt changed");
 	}

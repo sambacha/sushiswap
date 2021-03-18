@@ -43,6 +43,15 @@ contract MasterChefV2Harness is MasterChefV2 {
             payable returns(bool[] memory successes, bytes[] memory results) { }
 
     ////////////////////////////////////////////////////////////////////////////
+    //                            General Helpers                             //
+    ////////////////////////////////////////////////////////////////////////////
+
+    // helpers for int operations since in spec it is not possible
+    function compare(int256 x, int256 y) external pure returns (bool) {
+		return x <= y;
+	}
+
+    ////////////////////////////////////////////////////////////////////////////
     //                     Helper Functions for Invariants                    //
     ////////////////////////////////////////////////////////////////////////////
     // for invariants we need a function that simulate the constructor 
@@ -63,9 +72,4 @@ contract MasterChefV2Harness is MasterChefV2 {
     function pidToAddressOfRewarder(uint256 pid) public view returns (address) {
         return address(rewarder[pid]);
     }
-
-    //helpers for int operations since in spec it is not possible
-    function compare(int256 x, int256 y) external returns (bool) {
-		return x <= y;
-	}
 }
