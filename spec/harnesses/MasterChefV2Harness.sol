@@ -63,4 +63,9 @@ contract MasterChefV2Harness is MasterChefV2 {
     function pidToAddressOfRewarder(uint256 pid) public view returns (address) {
         return address(rewarder[pid]);
     }
+
+    //helpers for int operations since in spec it is not possible
+    function compare(int256 x, int256 y) external returns (bool) {
+		return x <= y;
+	}
 }
