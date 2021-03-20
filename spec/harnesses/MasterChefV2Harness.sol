@@ -14,20 +14,22 @@ contract MasterChefV2Harness is MasterChefV2 {
     ////////////////////////////////////////////////////////////////////////////
     //                        Getters for The Internals                       //
     ////////////////////////////////////////////////////////////////////////////
-    function userInfoAmount(uint256 pid, address user) public view returns (uint256 amount) {
+    function userInfoAmount(uint256 pid, address user) public view returns (uint256) {
         return userInfo[pid][user].amount;
     }
 
-    function userInfoRewardDebt(uint256 pid, address user) public view returns (int256 rewardDebt) {
+    function userInfoRewardDebt(uint256 pid, address user) public view returns (int256) {
         return userInfo[pid][user].rewardDebt;
     }
 
-    // currently not in use
+    function userLpTokenBalanceOf(uint256 pid, address user) public view returns (uint256) {
+        return lpToken[pid].balanceOf(user);
+    }
+
     function poolInfoAccSushiPerShare(uint256 pid) public view returns (uint128) {
         return poolInfo[pid].accSushiPerShare;
     }
 
-    // currently not in use
     function poolInfoLastRewardBlock(uint256 pid) public view returns (uint64) {
         return poolInfo[pid].lastRewardBlock;
     }
@@ -50,6 +52,10 @@ contract MasterChefV2Harness is MasterChefV2 {
     function compare(int256 x, int256 y) external pure returns (bool) {
 		return x <= y;
 	}
+
+    function intEquality(int256 x, int256 y) external pure returns (bool) {
+        return x == y;
+    }
 
     ////////////////////////////////////////////////////////////////////////////
     //                     Helper Functions for Invariants                    //

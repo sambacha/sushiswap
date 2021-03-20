@@ -20,6 +20,7 @@ methods {
 	// Getters for the internals
 	userInfoAmount(uint256 pid, address user) returns (uint256) envfree 
 	userInfoRewardDebt(uint256 pid, address user) returns (int256) envfree 
+	userLpTokenBalanceOf(uint256 pid, address user) returns (uint256) envfree 
 
 	poolInfoAccSushiPerShare(uint256 pid) returns (uint128) envfree
 	poolInfoLastRewardBlock(uint256 pid) returns (uint64) envfree
@@ -33,6 +34,7 @@ methods {
 
 	// General Helpers
 	compare(int256 x, int256 y) returns (bool) envfree // Helper for int operations
+	intEquality(int256 x, int256 y) returns (bool) envfree // Helper for to check int equality
 
 	// Helper Invariant Functions
 	poolLength() returns (uint256) envfree
@@ -41,6 +43,11 @@ methods {
 	pidToAddressOfLpToken(uint256 pid) returns (address) envfree
 	pidToAddressOfRewarder(uint256 pid) returns (address) envfree
 }
+
+// Constants
+
+definition MAX_UINT256() returns uint256 =
+	0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
 
 // Invariants
 
@@ -55,6 +62,38 @@ invariant integrityOfLength()
 // Are they just addresses? If not, can I compare their addresses? If yes, How do I get their addresses? (Can probably cast to an address)
 invariant singularLpToken(uint256 pid1, uint256 pid2)
 	(pidToAddressOfLpToken(pid1) == pidToAddressOfLpToken(pid2)) => (pid1 == pid2)
+
+// Invariants as Rules
+
+// failing because of updatePool from lines 170 - 174, I don't understand what's wrong.
+// I looked carefully, but seems fine to me. Ask Nurit to take a look.
+rule monotonicityOfAccSushiPerShare(uint256 pid, method f) {
+	env e;
+
+	uint128 _poolInfoAccSushiPerShare = poolInfoAccSushiPerShare(pid);
+
+	calldataarg args;
+	f(e, args);
+
+	uint128 poolInfoAccSushiPerShare_ = poolInfoAccSushiPerShare(pid);
+
+	assert(poolInfoAccSushiPerShare_ >= _poolInfoAccSushiPerShare, 
+		   "poolInfo accSushiPerShare not monotonic");
+}
+
+rule monotonicityOfLastRewardBlock(uint256 pid, method f) {
+	env e;
+
+	uint64 _poolInfoLastRewardBlock = poolInfoLastRewardBlock(pid);
+
+	calldataarg args;
+	f(e, args);
+
+	uint64 poolInfoLastRewardBlock_ = poolInfoLastRewardBlock(pid);
+
+	assert(poolInfoLastRewardBlock_ >= _poolInfoLastRewardBlock, 
+		   "poolInfo lastRewardBlock not monotonic");
+}
 
 // Rules
 
@@ -118,6 +157,103 @@ rule noChangeToOtherUsersRewardDebt(method f, uint256 pid, uint256 amount,
 	}
 }
 
-// rule noChangeToOtherPool() {
+// rule noChangeToOtherPool(uint256 pid1, uint256 pid2) {
 
 // }
+
+// lpToken(pid).balanceOf(u) + userInfo(pid)(u) 
+// rule preserveTotalAssetOfUser() {
+// 	env e;
+
+// 	// deposit -> to == msg.sender ??
+// 	// withdraw -> to == msg.sender ??
+// 	// emergencyWithdraw -> to == msg.sender ??
+// }
+
+// Can combine the additivity of deposit and withdraw using a helper function
+// Have them seperated just for now, once Nurit approves, combine them
+rule additivityOfDepositOnAmount(uint256 pid, uint256 x, uint256 y, address to) {
+	env e;
+	storage initStorage = lastStorage;
+
+	deposit(e, pid, x, to);
+	deposit(e, pid, y, to);
+
+	uint256 splitScenarioToAmount = userInfoAmount(pid, to);
+	uint256 splitScenarioSenderBalanceOf = userLpTokenBalanceOf(pid, e.msg.sender);
+
+	require x + y <= MAX_UINT256();
+	uint256 sum = x + y;
+	deposit(e, pid, sum, to) at initStorage;
+	
+	uint256 sumScenarioToAmount = userInfoAmount(pid, to);
+	uint256 sumScenarioSenderBalanceOf = userLpTokenBalanceOf(pid, e.msg.sender);
+
+	assert(splitScenarioToAmount == sumScenarioToAmount, 
+		   "deposit is not additive on amount");
+
+	assert(splitScenarioSenderBalanceOf == sumScenarioSenderBalanceOf, 
+		   "deposit is not additive on amount");
+}
+
+rule additivityOfDepositOnRewardDebt(uint256 pid, uint256 x, uint256 y, address to) {
+	env e;
+	storage initStorage = lastStorage;
+
+	deposit(e, pid, x, to);
+	deposit(e, pid, y, to);
+
+	int256 splitScenarioUserRewardDebt = userInfoRewardDebt(pid, to);
+
+	require x + y <= MAX_UINT256();
+	uint256 sum = x + y;
+	deposit(e, pid, sum, to) at initStorage;
+	
+	int256 sumScenarioUserRewardDebt = userInfoRewardDebt(pid, to);
+
+	assert(intEquality(splitScenarioUserRewardDebt, sumScenarioUserRewardDebt), 
+		   "deposit is not additive on rewardDebt");
+}
+
+rule additivityOfWithdrawOnAmount(uint256 pid, uint256 x, uint256 y, address to) {
+	env e;
+	storage initStorage = lastStorage;
+
+	withdraw(e, pid, x, to);
+	withdraw(e, pid, y, to);
+
+	uint256 splitScenarioSenderAmount = userInfoAmount(pid, e.msg.sender);
+	uint256 splitScenarioToBalanceOf = userLpTokenBalanceOf(pid, to);
+
+	require x + y <= MAX_UINT256();
+	uint256 sum = x + y;
+	withdraw(e, pid, sum, to) at initStorage;
+	
+	uint256 sumScenarioSenderAmount = userInfoAmount(pid, e.msg.sender);
+	uint256 sumScenarioToBalanceOf = userLpTokenBalanceOf(pid, to);
+
+	assert(splitScenarioSenderAmount == sumScenarioSenderAmount, 
+		   "withdraw is not additive on amount");
+
+	assert(splitScenarioToBalanceOf == sumScenarioToBalanceOf, 
+		   "withdraw is not additive on amount");
+}
+
+rule additivityOfWithdrawOnRewardDebt(uint256 pid, uint256 x, uint256 y, address to) {
+	env e;
+	storage initStorage = lastStorage;
+
+	withdraw(e, pid, x, to);
+	withdraw(e, pid, y, to);
+
+	int256 splitScenarioUserRewardDebt = userInfoRewardDebt(pid, to);
+
+	require x + y <= MAX_UINT256();
+	uint256 sum = x + y;
+	withdraw(e, pid, sum, to) at initStorage;
+	
+	int256 sumScenarioUserRewardDebt = userInfoRewardDebt(pid, to);
+
+	assert(intEquality(splitScenarioUserRewardDebt, sumScenarioUserRewardDebt), 
+		   "withdraw is not additive on rewardDebt");
+}
