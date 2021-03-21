@@ -26,6 +26,10 @@ contract MasterChefV2Harness is MasterChefV2 {
         return lpToken[pid].balanceOf(user);
     }
 
+    function sushiBalanceOf(address user) public view returns (uint256) {
+        return SUSHI.balanceOf(user);
+    }
+
     function poolInfoAccSushiPerShare(uint256 pid) public view returns (uint128) {
         return poolInfo[pid].accSushiPerShare;
     }

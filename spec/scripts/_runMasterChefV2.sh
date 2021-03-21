@@ -1,2 +1,2 @@
 # For windows replace certoraRun -> certoraRun.py and you might want to add --solc ,-rule=noChangeToOtherUsersRewardDebt
-certoraRun contracts/mocks/RewarderMock.sol spec/harnesses/MasterChefV2Harness.sol spec/harnesses/DummyERC20A.sol spec/harnesses/DummyERC20B.sol --settings -assumeUnwindCond --verify MasterChefV2Harness:spec/MasterChefV2.spec --staging --msg "testing all"
+certoraRun contracts/mocks/RewarderMock.sol spec/harnesses/MasterChefV2Harness.sol spec/harnesses/DummyERC20A.sol spec/harnesses/DummyERC20B.sol --settings -assumeUnwindCond,-rule=sushiGivenInHarvestEqualsPendingSushi --verify MasterChefV2Harness:spec/MasterChefV2.spec --staging --msg "testing sushiGivenInHarvestEqualsPendingSushi"

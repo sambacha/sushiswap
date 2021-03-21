@@ -23,6 +23,8 @@ methods {
 	userInfoRewardDebt(uint256 pid, address user) returns (int256) envfree 
 	userLpTokenBalanceOf(uint256 pid, address user) returns (uint256) envfree 
 
+	sushiBalanceOf(address user) returns (uint256) envfree 
+
 	poolInfoAccSushiPerShare(uint256 pid) returns (uint128) envfree
 	poolInfoLastRewardBlock(uint256 pid) returns (uint64) envfree
 	poolInfoAllocPoint(uint256 pid) returns (uint64) envfree
@@ -238,17 +240,62 @@ rule correctEffectOfChangeToAllocPoint(uint256 pid, address user,
 	       "The effect of changing allocPoint is incorrect");
 }
 
-// rule sushiGivenInHarvestEqualsPendingSushi(uint256 pid, address user, address to) {
+// How to get the address of SUSHI? Or do I just need to use the harness?
+rule sushiGivenInHarvestEqualsPendingSushi(uint256 pid, address user, address to) {
+	env e;
+
+	require to == user;
+
+	uint256 userSushiBalance = sushiBalanceOf(user);
+	uint256 userPendingSushi = pendingSushi(e, pid, user);
+
+	// Does success return value matters? Check with Nurit
+	harvest(e, pid, to);
+
+	uint256 userSushiBalance_ = sushiBalanceOf(user);
+
+	assert(userSushiBalance_ == (userSushiBalance + userPendingSushi),
+		   "pending sushi not equal to the sushi given in harvest");
+}
+
+rule depositThenWithdraw(uint256 pid, address user, uint256 amount, address to) {
+	env e;
+
+	require e.msg.sender == to;
+
+	uint256 _userInfoAmount = userInfoAmount(pid, user);
+	int256 _userInfoRewardDebt = userInfoRewardDebt(pid, user);
+
+	deposit(e, pid, amount, to);
+	withdraw(e, pid, amount ,to);
+
+	uint256 userInfoAmount_ = userInfoAmount(pid, user);
+	int256 userInfoRewardDebt_ = userInfoRewardDebt(pid, user);
+
+	assert(_userInfoAmount == userInfoAmount_, "user amount changed");
+	assert(intEquality(_userInfoRewardDebt, userInfoRewardDebt_),
+		   "user reward debt changed");
+}
+
+// rule depositThenWithdrawWithRevert() {
+	
+// }
+
+// rule orderOfOpeerationWithdrawAndHarvest() {
 // 	env e;
+// 	storage initStorage = lastStorage;
 
-// 	uint256 userSushiBalance = SUSHI.balanceOf(user);
-// 	uint256 userPendingSushi = pendingSushi(e, pid, user);
+// 	// call withdraw then harvest
 
-// 	// Does success return value matters? Check with Nurit
-// 	harvest(e, pid, to);
+// 	// store poolInfo1
+// 	// store userInfo1
 
-// 	assert(SUSHI.balanceOf(user) == (userSushiBalance + userPendingSushi),
-// 		   "pending sushi not equal to the sushi given in harvest");
+// 	// call harvest then withdraw at initStorage
+
+// 	// store poolInfo2
+// 	// store userInfo2
+
+// 	// check for equality among poolInfo1 == poolInfo2, userInfo1 == userInfo2
 // }
 
 // Can combine the additivity of deposit and withdraw using a helper function
