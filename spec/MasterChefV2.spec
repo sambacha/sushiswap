@@ -11,6 +11,7 @@ using DummyWeth as wethTokenImpl
 using SymbolicStrategy as strategyInstance
 using Borrower as borrower
 using RewarderMock as rewarderMock
+using DummySUSHI as sushiToken
 
 /*
  * Declaration of methods that are used in the rules.
@@ -29,11 +30,19 @@ methods {
 	poolInfoLastRewardBlock(uint256 pid) returns (uint64) envfree
 	poolInfoAllocPoint(uint256 pid) returns (uint64) envfree
 
+	SUSHI() returns (address) envfree
+	lpToken(uint256 pid) returns (address) envfree
+
 	// ERC20 
 	balanceOf(address) => DISPATCHER(true) 
 	totalSupply() => DISPATCHER(true)
 	transferFrom(address from, address to, uint256 amount) => DISPATCHER(true)
 	transfer(address to, uint256 amount) => DISPATCHER(true)
+	approve(address t, uint256 amount) => NONDET
+	permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) => NONDET
+	// SUSHI token
+	sushiToken.balanceOf(address) returns (uint256)  
+	
 
 	// General Helpers
 	compare(int256 x, int256 y) returns (bool) envfree // Helper for int operations
@@ -45,6 +54,14 @@ methods {
 	rewarderLength() returns (uint256) envfree
 	pidToAddressOfLpToken(uint256 pid) returns (address) envfree
 	pidToAddressOfRewarder(uint256 pid) returns (address) envfree
+
+	// Rewarder
+	//SIG_ON_SUSHI_REWARD = 0xbb6cc2ef; // onSushiReward(uint256,address,uint256)
+	0xbb6cc2ef => NONDET
+
+	//MASTERCHEFV1
+	deposit(uint256 pid, uint256 amount) => NONDET
+
 }
 
 // Constants
@@ -57,9 +74,14 @@ definition MAX_UINT256() returns uint256 =
 invariant existanceOfPid(uint256 pid, address user)
 	(pidToAddressOfLpToken(pid) == 0) => (poolInfoAllocPoint(pid) == 0 && userInfoAmount(pid, user) == 0 && pidToAddressOfRewarder(pid) == 0)
 
+
+
 // the userInfo map size should also be equal? (can't get the size of mapping in solidity)
 invariant integrityOfLength() 
 	poolLength() == lpTokenLength() && lpTokenLength() == rewarderLength()
+// nurit we can have also:
+//userInfoAmount(pid, user) > 0 => pidToAddressOfLpToken(pid) != 0
+	
 
 // It is not possible to compare IRC20 since they are not primitive types, how can I compare them?
 // Are they just addresses? If not, can I compare their addresses? If yes, How do I get their addresses? (Can probably cast to an address)
@@ -71,18 +93,19 @@ invariant singularLpToken(uint256 pid1, uint256 pid2)
 // failing because of updatePool from lines 170 - 174, I don't understand what's wrong.
 // I looked carefully, but seems fine to me. Ask Nurit to take a look.
 // I don't understand what it means by op is also different block.
-rule monotonicityOfAccSushiPerShare(uint256 pid, method f) {
+rule monotonicityOfAccSushiPerShare(uint256 pid /*, method f*/) {
 	env e;
 
 	uint128 _poolInfoAccSushiPerShare = poolInfoAccSushiPerShare(pid);
 
 	calldataarg args;
-	f(e, args);
-
+	//f(e, args);
+	updatePool(e, pid);
 	uint128 poolInfoAccSushiPerShare_ = poolInfoAccSushiPerShare(pid);
 
-	assert(poolInfoAccSushiPerShare_ >= _poolInfoAccSushiPerShare, 
-		   "poolInfo accSushiPerShare not monotonic");
+	//assert(poolInfoAccSushiPerShare_ >= _poolInfoAccSushiPerShare, 
+	//	   "poolInfo accSushiPerShare not monotonic");
+	assert compareUint128(e, poolInfoAccSushiPerShare_, _poolInfoAccSushiPerShare);
 }
 
 rule monotonicityOfLastRewardBlock(uint256 pid, method f) {
@@ -170,8 +193,8 @@ rule preserveTotalAssetOfUser(method f, uint256 pid, address user,
 					          address to, uint256 amount) {
 	env e;
 
-	require user == e.msg.sender && user == to;
-
+	require user == e.msg.sender && user == to && user != currentContract;
+	require SUSHI() != lpToken(pid); // <-- check this again 
 	uint256 _totalUserAssets = userLpTokenBalanceOf(pid, user) + userInfoAmount(pid, user);
 
 	if (f.selector == deposit(uint256, uint256, address).selector) {
@@ -245,14 +268,15 @@ rule sushiGivenInHarvestEqualsPendingSushi(uint256 pid, address user, address to
 	env e;
 
 	require to == user;
+	require sushiToken == SUSHI();
 
-	uint256 userSushiBalance = sushiBalanceOf(user);
+	uint256 userSushiBalance = sushiToken.balanceOf(e, user);
 	uint256 userPendingSushi = pendingSushi(e, pid, user);
 
 	// Does success return value matters? Check with Nurit
 	harvest(e, pid, to);
 
-	uint256 userSushiBalance_ = sushiBalanceOf(user);
+	uint256 userSushiBalance_ = sushiToken.balanceOf(e, user);
 
 	assert(userSushiBalance_ == (userSushiBalance + userPendingSushi),
 		   "pending sushi not equal to the sushi given in harvest");

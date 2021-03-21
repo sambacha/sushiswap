@@ -61,6 +61,10 @@ contract MasterChefV2Harness is MasterChefV2 {
         return x == y;
     }
 
+    function compareUint128(uint128 x, uint128 y) external pure returns (bool) {
+		return x >= y;
+	}
+
     ////////////////////////////////////////////////////////////////////////////
     //                     Helper Functions for Invariants                    //
     ////////////////////////////////////////////////////////////////////////////
