@@ -2,7 +2,7 @@
  * This is a specification file for MasterChefV2's formal verification
  * using the Certora prover.
  *
- * Run this file with scripts/run.sh
+ * Run this file with scripts/_runMasterChefV2.sh
  */
 
 // Declaration of contracts used in the sepc 
@@ -10,6 +10,7 @@ using DummyERC20A as tokenA
 using DummyWeth as wethTokenImpl
 using SymbolicStrategy as strategyInstance
 using Borrower as borrower
+using RewarderMock as rewarderMock
 
 /*
  * Declaration of methods that are used in the rules.
@@ -67,6 +68,7 @@ invariant singularLpToken(uint256 pid1, uint256 pid2)
 
 // failing because of updatePool from lines 170 - 174, I don't understand what's wrong.
 // I looked carefully, but seems fine to me. Ask Nurit to take a look.
+// I don't understand what it means by op is also different block.
 rule monotonicityOfAccSushiPerShare(uint256 pid, method f) {
 	env e;
 
@@ -161,7 +163,7 @@ rule noChangeToOtherUsersRewardDebt(method f, uint256 pid, uint256 amount,
 
 // }
 
-// lpToken(pid).balanceOf(u) + userInfo(pid)(u) 
+// Very weird, not passing even on the simple case for deposit
 rule preserveTotalAssetOfUser(method f, uint256 pid, address user,
 					          address to, uint256 amount) {
 	env e;
@@ -186,6 +188,68 @@ rule preserveTotalAssetOfUser(method f, uint256 pid, address user,
 	assert(_totalUserAssets == totalUserAssets_,
 		   "total user balance is not preserved");
 }
+
+// Debugging version for preserveTotalAssetOfUser
+// rule preserveTotalAssetOfUser(method f, uint256 pid, address user,
+// 					          address to, uint256 amount) {
+// 	env e;
+
+// 	uint256 _userBalanceOf = userLpTokenBalanceOf(pid, e.msg.sender);
+// 	uint256 _userInfoAmount = userInfoAmount(pid, e.msg.sender);
+
+// 	if (f.selector == deposit(uint256, uint256, address).selector) {
+// 		deposit(e, pid, amount, e.msg.sender);
+// 	} else if (f.selector == withdraw(uint256, uint256, address).selector) {
+// 		withdraw(e, pid, amount, e.msg.sender);
+// 	} else if (f.selector == emergencyWithdraw(uint256, address).selector) {
+// 		emergencyWithdraw(e, pid, e.msg.sender);
+// 	} else {
+// 		calldataarg args;
+// 		f(e, args);
+// 	}
+
+// 	uint256 userBalanceOf_ = userLpTokenBalanceOf(pid, e.msg.sender);
+// 	uint256 userInfoAmount_ = userInfoAmount(pid, e.msg.sender);
+
+// 	assert((_userBalanceOf + _userInfoAmount) == (userBalanceOf_ + userInfoAmount_),
+// 		   "total user balance is not preserved");
+// }
+
+// rule solvency() {
+
+// }
+
+rule correctEffectOfChangeToAllocPoint(uint256 pid, address user,
+									   uint256 allocPoint, bool overwrite) {
+	env e1;
+	env e2;
+	env e3;
+
+	require e2.block.number >= e1.block.number;
+	require e3.block.number >= e2.block.number;
+
+	uint256 _pendingSushi = pendingSushi(e1, pid, user);
+
+	set(e2, pid, allocPoint, rewarderMock, overwrite);
+
+	uint256 pendingSushi_ = pendingSushi(e3, pid, user);
+
+	assert(pendingSushi_ >= _pendingSushi, 
+	       "The effect of changing allocPoint is incorrect");
+}
+
+// rule sushiGivenInHarvestEqualsPendingSushi(uint256 pid, address user, address to) {
+// 	env e;
+
+// 	uint256 userSushiBalance = SUSHI.balanceOf(user);
+// 	uint256 userPendingSushi = pendingSushi(e, pid, user);
+
+// 	// Does success return value matters? Check with Nurit
+// 	harvest(e, pid, to);
+
+// 	assert(SUSHI.balanceOf(user) == (userSushiBalance + userPendingSushi),
+// 		   "pending sushi not equal to the sushi given in harvest");
+// }
 
 // Can combine the additivity of deposit and withdraw using a helper function
 // Have them seperated just for now, once Nurit approves, combine them
