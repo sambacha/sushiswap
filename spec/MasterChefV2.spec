@@ -162,13 +162,30 @@ rule noChangeToOtherUsersRewardDebt(method f, uint256 pid, uint256 amount,
 // }
 
 // lpToken(pid).balanceOf(u) + userInfo(pid)(u) 
-// rule preserveTotalAssetOfUser() {
-// 	env e;
+rule preserveTotalAssetOfUser(method f, uint256 pid, address user,
+					          address to, uint256 amount) {
+	env e;
 
-// 	// deposit -> to == msg.sender ??
-// 	// withdraw -> to == msg.sender ??
-// 	// emergencyWithdraw -> to == msg.sender ??
-// }
+	require user == e.msg.sender && user == to;
+
+	uint256 _totalUserAssets = userLpTokenBalanceOf(pid, user) + userInfoAmount(pid, user);
+
+	if (f.selector == deposit(uint256, uint256, address).selector) {
+		deposit(e, pid, amount, to);
+	} else if (f.selector == withdraw(uint256, uint256, address).selector) {
+		withdraw(e, pid, amount, to);
+	} else if (f.selector == emergencyWithdraw(uint256, address).selector) {
+		emergencyWithdraw(e, pid, to);
+	} else {
+		calldataarg args;
+		f(e, args);
+	}
+
+	uint256 totalUserAssets_ = userLpTokenBalanceOf(pid, user) + userInfoAmount(pid, user);
+
+	assert(_totalUserAssets == totalUserAssets_,
+		   "total user balance is not preserved");
+}
 
 // Can combine the additivity of deposit and withdraw using a helper function
 // Have them seperated just for now, once Nurit approves, combine them
