@@ -26,10 +26,6 @@ contract MasterChefV2Harness is MasterChefV2 {
         return lpToken[pid].balanceOf(user);
     }
 
-    function sushiBalanceOf(address user) public view returns (uint256) {
-        return SUSHI.balanceOf(user);
-    }
-
     function poolInfoAccSushiPerShare(uint256 pid) public view returns (uint128) {
         return poolInfo[pid].accSushiPerShare;
     }
@@ -83,13 +79,5 @@ contract MasterChefV2Harness is MasterChefV2 {
 
     function rewarderLength() public view returns (uint256) {
         return rewarder.length;
-    }
-
-    function pidToAddressOfLpToken(uint256 pid) public view returns (address) {
-        return address(lpToken[pid]);
-    }
-
-    function pidToAddressOfRewarder(uint256 pid) public view returns (address) {
-        return address(rewarder[pid]);
     }
 }
