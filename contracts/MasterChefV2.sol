@@ -155,7 +155,7 @@ contract MasterChefV2 is BoringOwnable, BoringBatchable {
     }
 
     /// @notice Calculates and returns the `amount` of SUSHI per block.
-    function sushiPerBlock() public view returns (uint256 amount) {
+    function sushiPerBlock() public view virtual returns (uint256 amount) {
         amount = uint256(MASTERCHEF_SUSHI_PER_BLOCK)
             .mul(MASTER_CHEF.poolInfo(MASTER_PID).allocPoint) / MASTER_CHEF.totalAllocPoint();
     }
