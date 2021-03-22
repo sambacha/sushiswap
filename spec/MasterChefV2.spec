@@ -22,16 +22,14 @@ methods {
 	// Getters for the internals
 	userInfoAmount(uint256 pid, address user) returns (uint256) envfree 
 	userInfoRewardDebt(uint256 pid, address user) returns (int256) envfree 
-	userLpTokenBalanceOf(uint256 pid, address user) returns (uint256) envfree 
-
-	sushiBalanceOf(address user) returns (uint256) envfree 
+	userLpTokenBalanceOf(uint256 pid, address user) returns (uint256) envfree // How to remove this? (Ask Nurit)
 
 	poolInfoAccSushiPerShare(uint256 pid) returns (uint128) envfree
 	poolInfoLastRewardBlock(uint256 pid) returns (uint64) envfree
 	poolInfoAllocPoint(uint256 pid) returns (uint64) envfree
 
-	SUSHI() returns (address) envfree
 	lpToken(uint256 pid) returns (address) envfree
+	rewarder(uint256 pid) returns (address) envfree
 
 	// ERC20 
 	balanceOf(address) => DISPATCHER(true) 
@@ -40,10 +38,7 @@ methods {
 	transfer(address to, uint256 amount) => DISPATCHER(true)
 	approve(address t, uint256 amount) => NONDET
 	permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) => NONDET
-	// SUSHI token
-	sushiToken.balanceOf(address) returns (uint256)  
 	
-
 	// General Helpers
 	compare(int256 x, int256 y) returns (bool) envfree // Helper for int operations
 	intEquality(int256 x, int256 y) returns (bool) envfree // Helper for to check int equality
@@ -52,16 +47,17 @@ methods {
 	poolLength() returns (uint256) envfree
 	lpTokenLength() returns (uint256) envfree
 	rewarderLength() returns (uint256) envfree
-	pidToAddressOfLpToken(uint256 pid) returns (address) envfree
-	pidToAddressOfRewarder(uint256 pid) returns (address) envfree
+
+	// SUSHI token
+	SUSHI() returns (address) envfree
+	sushiToken.balanceOf(address) returns (uint256)  
 
 	// Rewarder
 	//SIG_ON_SUSHI_REWARD = 0xbb6cc2ef; // onSushiReward(uint256,address,uint256)
 	0xbb6cc2ef => NONDET
 
-	//MASTERCHEFV1
+	// MasterChefV1
 	deposit(uint256 pid, uint256 amount) => NONDET
-
 }
 
 // Constants
@@ -72,27 +68,20 @@ definition MAX_UINT256() returns uint256 =
 // Invariants
 
 invariant existanceOfPid(uint256 pid, address user)
-	(pidToAddressOfLpToken(pid) == 0) => (poolInfoAllocPoint(pid) == 0 && userInfoAmount(pid, user) == 0 && pidToAddressOfRewarder(pid) == 0)
-
-
+	(lpToken(pid) == 0) => (poolInfoAllocPoint(pid) == 0 && userInfoAmount(pid, user) == 0 && rewarder(pid) == 0)
 
 // the userInfo map size should also be equal? (can't get the size of mapping in solidity)
 invariant integrityOfLength() 
 	poolLength() == lpTokenLength() && lpTokenLength() == rewarderLength()
-// nurit we can have also:
-//userInfoAmount(pid, user) > 0 => pidToAddressOfLpToken(pid) != 0
-	
 
-// It is not possible to compare IRC20 since they are not primitive types, how can I compare them?
-// Are they just addresses? If not, can I compare their addresses? If yes, How do I get their addresses? (Can probably cast to an address)
-invariant singularLpToken(uint256 pid1, uint256 pid2)
-	(pidToAddressOfLpToken(pid1) == pidToAddressOfLpToken(pid2)) => (pid1 == pid2)
+// Nurit: we can have also:
+//		userInfoAmount(pid, user) > 0 => lpToken(pid) != 0
 
 // Invariants as Rules
 
 // failing because of updatePool from lines 170 - 174, I don't understand what's wrong.
 // I looked carefully, but seems fine to me. Ask Nurit to take a look.
-// I don't understand what it means by op is also different block.
+// Work in progress ...
 rule monotonicityOfAccSushiPerShare(uint256 pid /*, method f*/) {
 	env e;
 
@@ -101,6 +90,7 @@ rule monotonicityOfAccSushiPerShare(uint256 pid /*, method f*/) {
 	calldataarg args;
 	//f(e, args);
 	updatePool(e, pid);
+
 	uint128 poolInfoAccSushiPerShare_ = poolInfoAccSushiPerShare(pid);
 
 	//assert(poolInfoAccSushiPerShare_ >= _poolInfoAccSushiPerShare, 
@@ -188,13 +178,14 @@ rule noChangeToOtherUsersRewardDebt(method f, uint256 pid, uint256 amount,
 
 // }
 
-// Very weird, not passing even on the simple case for deposit
+// Only failing on init()
 rule preserveTotalAssetOfUser(method f, uint256 pid, address user,
 					          address to, uint256 amount) {
 	env e;
 
 	require user == e.msg.sender && user == to && user != currentContract;
-	require SUSHI() != lpToken(pid); // <-- check this again 
+	require SUSHI() != lpToken(pid); // <-- check this again (Nurit)
+
 	uint256 _totalUserAssets = userLpTokenBalanceOf(pid, user) + userInfoAmount(pid, user);
 
 	if (f.selector == deposit(uint256, uint256, address).selector) {
@@ -213,32 +204,6 @@ rule preserveTotalAssetOfUser(method f, uint256 pid, address user,
 	assert(_totalUserAssets == totalUserAssets_,
 		   "total user balance is not preserved");
 }
-
-// Debugging version for preserveTotalAssetOfUser
-// rule preserveTotalAssetOfUser(method f, uint256 pid, address user,
-// 					          address to, uint256 amount) {
-// 	env e;
-
-// 	uint256 _userBalanceOf = userLpTokenBalanceOf(pid, e.msg.sender);
-// 	uint256 _userInfoAmount = userInfoAmount(pid, e.msg.sender);
-
-// 	if (f.selector == deposit(uint256, uint256, address).selector) {
-// 		deposit(e, pid, amount, e.msg.sender);
-// 	} else if (f.selector == withdraw(uint256, uint256, address).selector) {
-// 		withdraw(e, pid, amount, e.msg.sender);
-// 	} else if (f.selector == emergencyWithdraw(uint256, address).selector) {
-// 		emergencyWithdraw(e, pid, e.msg.sender);
-// 	} else {
-// 		calldataarg args;
-// 		f(e, args);
-// 	}
-
-// 	uint256 userBalanceOf_ = userLpTokenBalanceOf(pid, e.msg.sender);
-// 	uint256 userInfoAmount_ = userInfoAmount(pid, e.msg.sender);
-
-// 	assert((_userBalanceOf + _userInfoAmount) == (userBalanceOf_ + userInfoAmount_),
-// 		   "total user balance is not preserved");
-// }
 
 // rule solvency() {
 
@@ -263,7 +228,6 @@ rule correctEffectOfChangeToAllocPoint(uint256 pid, address user,
 	       "The effect of changing allocPoint is incorrect");
 }
 
-// How to get the address of SUSHI? Or do I just need to use the harness?
 rule sushiGivenInHarvestEqualsPendingSushi(uint256 pid, address user, address to) {
 	env e;
 
