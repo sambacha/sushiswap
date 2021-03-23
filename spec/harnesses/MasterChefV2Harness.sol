@@ -7,7 +7,6 @@ contract MasterChefV2Harness is MasterChefV2 {
     ////////////////////////////////////////////////////////////////////////////
     //                         Constructors and inits                         //
     ////////////////////////////////////////////////////////////////////////////
-
     constructor(IMasterChef _MASTER_CHEF, IERC20 _sushi, uint256 _MASTER_PID)
                     MasterChefV2(_MASTER_CHEF, _sushi, _MASTER_PID) public { }
 
@@ -66,6 +65,12 @@ contract MasterChefV2Harness is MasterChefV2 {
     function compareUint128(uint128 x, uint128 y) external pure returns (bool) {
 		return x >= y;
 	}
+
+    function intDeltaOne(int256 x, int256 y) external pure returns (bool) {
+        int256 difference = x.sub(y);
+
+        return difference >= -1 && difference <= 1;
+    }
 
     ////////////////////////////////////////////////////////////////////////////
     //                     Helper Functions for Invariants                    //

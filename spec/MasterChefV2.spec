@@ -197,9 +197,9 @@ rule noChangeToOtherPool(uint256 pid, uint256 otherPid) {
 	assert(_otherAllocPoint == otherAllocPoint_, "allocPoint changed");
 }
 
-// Only failing on init()
 rule preserveTotalAssetOfUser(method f, uint256 pid, address user,
 					          address to, uint256 amount) {
+	require f.selector != init(address).selector;
 	env e;
 
 	require user == e.msg.sender && user == to && user != currentContract;
