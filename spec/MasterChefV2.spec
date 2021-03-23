@@ -177,10 +177,13 @@ rule noChangeToOtherPool(uint256 pid, uint256 otherPid) {
 	uint64 _otherAllocPoint = poolInfoAllocPoint(otherPid);
 
 	method f;
+	require f.selector != massUpdatePools(uint256[]).selector;
+
 	uint256 allocPoint;
 	bool overwrite;
 	address user;
 	uint256 amount;
+
 	callFunctionWithParams(f, pid, allocPoint, overwrite, user, amount);
 
 	uint128 otherAccSushiPerShare_ = poolInfoAccSushiPerShare(otherPid);
