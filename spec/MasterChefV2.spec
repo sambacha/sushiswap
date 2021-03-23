@@ -69,7 +69,7 @@ definition MAX_UINT256() returns uint256 =
 // Invariants
 
 invariant existanceOfPid(uint256 pid, address user)
-	pid > lpTokenLength() && 
+	pid > lpTokenLength() || 
 	(lpToken(pid) == 0) => (poolInfoAllocPoint(pid) == 0 && userInfoAmount(pid, user) == 0 && rewarder(pid) == 0)
 
 invariant integrityOfLength() 
