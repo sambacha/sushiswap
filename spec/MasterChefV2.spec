@@ -43,6 +43,7 @@ methods {
 	compare(int256 x, int256 y) returns (bool) envfree // Helper to check <= for int256
 	intEquality(int256 x, int256 y) returns (bool) envfree // Helper to check int equality
 	compareUint128(uint128 x, uint128 y) returns (bool) envfree // Helper to check >= for uint128
+	intDeltaOne(int256 x, int256 y) returns (bool) envfree // Helper to allow a difference of 1 for int256
 
 	// Helper Invariant Functions
 	poolLength() returns (uint256) envfree
@@ -321,7 +322,7 @@ rule orderOfOperationWithdrawAndHarvest(uint256 pid, uint256 amount, address use
 	assert(splitScenarioAllocPoint == splitScenarioAllocPoint, "splitScenarioAllocPoint");
 
 	assert(splitScenarioUserInfoAmount == finalScenarioUserInfoAmount, "finalScenarioUserInfoAmount");
-	assert(intEquality(splitScenarioUserInfoRewardDebt, finalScenarioUserInfoRewardDebt), "finalScenarioUserInfoRewardDebt");
+	assert(intDeltaOne(splitScenarioUserInfoRewardDebt, finalScenarioUserInfoRewardDebt), "finalScenarioUserInfoRewardDebt");
 }
 
 rule additivityOfDepositOnAmount(uint256 pid, uint256 x, uint256 y, address to) {
