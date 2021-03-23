@@ -69,20 +69,20 @@ definition MAX_UINT256() returns uint256 =
 // Invariants
 
 invariant existanceOfPid(uint256 pid, address user)
+	pid > lpTokenLength() && 
 	(lpToken(pid) == 0) => (poolInfoAllocPoint(pid) == 0 && userInfoAmount(pid, user) == 0 && rewarder(pid) == 0)
 
-// the userInfo map size should also be equal? (can't get the size of mapping in solidity)
 invariant integrityOfLength() 
 	poolLength() == lpTokenLength() && lpTokenLength() == rewarderLength()
 
 invariant validityOfLpToken(uint256 pid, address user)
 	(userInfoAmount(pid, user) > 0) => (lpToken(pid) != 0)
 
+// TODO: (1)
+// invariant integrityOfTotalAllocPoint()
+
 // Invariants as Rules
 
-// failing because of updatePool from lines 170 - 174, I don't understand what's wrong.
-// I looked carefully, but seems fine to me. Ask Nurit to take a look.
-// Work in progress ...
 rule monotonicityOfAccSushiPerShare(uint256 pid, method f) {
 	env e;
 
@@ -144,8 +144,6 @@ rule noChangeToOtherUsersAmount(method f, uint256 pid, uint256 amount,
 	}
 }
 
-// Failing on deposit, did some digging, but still not sure what's going on.
-// rewardDebt is int256 not uint256, something might be there.
 rule noChangeToOtherUsersRewardDebt(method f, uint256 pid, uint256 amount,
 								address other, address to) {
 	env e;
@@ -165,7 +163,6 @@ rule noChangeToOtherUsersRewardDebt(method f, uint256 pid, uint256 amount,
 
 	// to should only be limited in deposit
 	if (f.selector == deposit(uint256, uint256, address).selector && other == to) {
-
 		assert(compare(_userInfoRewardDebt, userInfoRewardDebt_), "other's user rewardDebt changed");
 	} else {
 		assert(_userInfoRewardDebt == userInfoRewardDebt_, "other's user rewardDebt changed");
@@ -224,7 +221,8 @@ rule preserveTotalAssetOfUser(method f, uint256 pid, address user,
 		   "total user balance is not preserved");
 }
 
-// rule solvency() {
+// TODO: (2)
+// rule solvency() { 
 
 // }
 
@@ -284,6 +282,7 @@ rule depositThenWithdraw(uint256 pid, address user, uint256 amount, address to) 
 		   "user reward debt changed");
 }
 
+// TODO: (3)
 // rule depositThenWithdrawWithRevert() {
 	
 // }
@@ -322,8 +321,6 @@ rule orderOfOperationWithdrawAndHarvest(uint256 pid, uint256 amount, address use
 	assert(intEquality(splitScenarioUserInfoRewardDebt, finalScenarioUserInfoRewardDebt), "finalScenarioUserInfoRewardDebt");
 }
 
-// Can combine the additivity of deposit and withdraw using a helper function
-// Have them seperated just for now, once Nurit approves, combine them
 rule additivityOfDepositOnAmount(uint256 pid, uint256 x, uint256 y, address to) {
 	env e;
 	storage initStorage = lastStorage;
