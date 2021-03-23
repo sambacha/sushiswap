@@ -44,10 +44,12 @@ contract MasterChefV2Harness is MasterChefV2 {
     function batch(bytes[] calldata calls, bool revertOnFail) override external
             payable returns(bool[] memory successes, bytes[] memory results) { }
 
-    mapping (uint256 => uint256) symbolicSushiPerBlock; // random number
+    mapping(uint256 => uint256) symbolicSushiPerBlock; // random number
+
     function sushiPerBlock() public view override returns (uint256 amount) {
         return symbolicSushiPerBlock[block.number];
     }
+
     ////////////////////////////////////////////////////////////////////////////
     //                            General Helpers                             //
     ////////////////////////////////////////////////////////////////////////////
@@ -64,8 +66,6 @@ contract MasterChefV2Harness is MasterChefV2 {
     function compareUint128(uint128 x, uint128 y) external pure returns (bool) {
 		return x >= y;
 	}
-
-
 
     ////////////////////////////////////////////////////////////////////////////
     //                     Helper Functions for Invariants                    //

@@ -74,8 +74,8 @@ invariant existanceOfPid(uint256 pid, address user)
 invariant integrityOfLength() 
 	poolLength() == lpTokenLength() && lpTokenLength() == rewarderLength()
 
-// Nurit: we can have also:
-//		userInfoAmount(pid, user) > 0 => lpToken(pid) != 0
+// invariant validityOfLpToken()
+// 	(userInfoAmount(pid, user) > 0) => (lpToken(pid) != 0)
 
 // Invariants as Rules
 
@@ -231,7 +231,7 @@ rule correctEffectOfChangeToAllocPoint(uint256 pid, address user,
 rule sushiGivenInHarvestEqualsPendingSushi(uint256 pid, address user, address to) {
 	env e;
 
-	require to == user;
+	require to == user && user != currentContract;
 	require sushiToken == SUSHI();
 
 	uint256 userSushiBalance = sushiToken.balanceOf(e, user);
@@ -255,7 +255,7 @@ rule depositThenWithdraw(uint256 pid, address user, uint256 amount, address to) 
 	int256 _userInfoRewardDebt = userInfoRewardDebt(pid, user);
 
 	deposit(e, pid, amount, to);
-	withdraw(e, pid, amount ,to);
+	withdraw(e, pid, amount, to);
 
 	uint256 userInfoAmount_ = userInfoAmount(pid, user);
 	int256 userInfoRewardDebt_ = userInfoRewardDebt(pid, user);

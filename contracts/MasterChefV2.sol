@@ -57,8 +57,8 @@ contract MasterChefV2 is BoringOwnable, BoringBatchable {
     /// @dev Total allocation points. Must be the sum of all allocation points in all pools.
     uint256 totalAllocPoint;
 
-    uint256 private constant MASTERCHEF_SUSHI_PER_BLOCK = 1e20;
-    uint256 private constant ACC_SUSHI_PRECISION = 1e12;
+    uint256 private constant MASTERCHEF_SUSHI_PER_BLOCK = 1000;
+    uint256 private constant ACC_SUSHI_PRECISION = 10;
     bytes4 private constant SIG_ON_SUSHI_REWARD = 0xbb6cc2ef; // onSushiReward(uint256,address,uint256)
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount, address indexed to);
