@@ -58,7 +58,7 @@ contract MasterChefV2 is BoringOwnable, BoringBatchable {
     uint256 totalAllocPoint;
 
     uint256 private constant MASTERCHEF_SUSHI_PER_BLOCK = 1000;
-    uint256 private constant ACC_SUSHI_PRECISION = 10;
+    uint256 public constant ACC_SUSHI_PRECISION = 10;
     bytes4 private constant SIG_ON_SUSHI_REWARD = 0xbb6cc2ef; // onSushiReward(uint256,address,uint256)
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount, address indexed to);
@@ -122,7 +122,8 @@ contract MasterChefV2 is BoringOwnable, BoringBatchable {
     /// @param _rewarder Address of the rewarder delegate.
     /// @param overwrite True if _rewarder should be `set`. Otherwise `_rewarder` is ignored.
     function set(uint256 _pid, uint256 _allocPoint, IRewarder _rewarder, bool overwrite) public onlyOwner {
-        totalAllocPoint = totalAllocPoint.sub(poolInfo[_pid].allocPoint).add(_allocPoint);
+        //TODO - added a bug to the code - need to remove this 
+        totalAllocPoint = totalAllocPoint/*.sub(poolInfo[_pid].allocPoint)*/.add(_allocPoint);
         poolInfo[_pid].allocPoint = _allocPoint.to64();
         if (overwrite) { rewarder[_pid] = _rewarder; }
         emit LogSetPool(_pid, _allocPoint, overwrite ? _rewarder : rewarder[_pid], overwrite);
@@ -169,13 +170,21 @@ contract MasterChefV2 is BoringOwnable, BoringBatchable {
             uint256 lpSupply = lpToken[pid].balanceOf(address(this));
             if (lpSupply > 0) {
                 uint256 blocks = block.number.sub(pool.lastRewardBlock);
-                uint256 sushiReward = blocks.mul(sushiPerBlock()).mul(pool.allocPoint) / totalAllocPoint;
-                pool.accSushiPerShare = pool.accSushiPerShare.add((sushiReward.mul(ACC_SUSHI_PRECISION) / lpSupply).to128());
+                uint256 sushiReward = calculateSushiReward(blocks, pool.allocPoint); // blocks.mul(sushiPerBlock()).mul(pool.allocPoint) / totalAllocPoint;
+                pool.accSushiPerShare = pool.accSushiPerShare.add(calculateSushiPerShare(sushiReward, lpSupply).to128()); //((sushiReward.mul(ACC_SUSHI_PRECISION) / lpSupply).to128());
             }
             pool.lastRewardBlock = block.number.to64();
             poolInfo[pid] = pool;
             emit LogUpdatePool(pid, pool.lastRewardBlock, lpSupply, pool.accSushiPerShare);
         }
+    }
+
+    function calculateSushiReward(uint256 blocks, uint64 poolAllocPoint) virtual internal returns (uint256) {
+        return blocks.mul(sushiPerBlock()).mul(poolAllocPoint) / totalAllocPoint;
+    }
+
+    function calculateSushiPerShare(uint256 sushiReward, uint256 lpSupply ) virtual internal returns (uint256) {
+        return (sushiReward.mul(ACC_SUSHI_PRECISION) / lpSupply).to128();
     }
 
     /// @notice Deposit LP tokens to MCV2 for SUSHI allocation.

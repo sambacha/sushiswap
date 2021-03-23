@@ -27,6 +27,7 @@ methods {
 	poolInfoAccSushiPerShare(uint256 pid) returns (uint128) envfree
 	poolInfoLastRewardBlock(uint256 pid) returns (uint64) envfree
 	poolInfoAllocPoint(uint256 pid) returns (uint64) envfree
+	totalAllocPoint() returns (uint256) envfree
 
 	lpToken(uint256 pid) returns (address) envfree
 	rewarder(uint256 pid) returns (address) envfree
@@ -67,6 +68,18 @@ methods {
 definition MAX_UINT256() returns uint256 =
 	0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
 
+ghost allocPointSum() returns uint256 {
+    init_state axiom allocPointSum() == 0;
+}
+// On an update to poolInfo[pid].allocPoint = newAllocPoint
+// where poolInfo[pid].allocPoint == oldAllocPoint before the assignmnet
+// We update allocPointSum() := allocPointSum() + newAllocPoint - oldAllocPoint
+hook Sstore poolInfo[INDEX uint pid].(offset 24) uint newAllocPoint (uint oldAllocPoint) STORAGE {
+	havoc allocPointSum assuming allocPointSum@new() == allocPointSum@old() + newAllocPoint - oldAllocPoint; 
+}
+
+
+
 // Invariants
 
 invariant existenceOfPid(uint256 pid, address user)
@@ -80,7 +93,8 @@ invariant validityOfLpToken(uint256 pid, address user)
 	(userInfoAmount(pid, user) > 0) => (lpToken(pid) != 0)
 
 // TODO: (1)
-// invariant integrityOfTotalAllocPoint()
+invariant integrityOfTotalAllocPoint()
+		allocPointSum() == totalAllocPoint()
 
 // Invariants as Rules
 
@@ -240,7 +254,7 @@ rule correctEffectOfChangeToAllocPoint(uint256 pid, address user,
 	require e3.block.number >= e2.block.number;
 
 	uint256 _pendingSushi = pendingSushi(e1, pid, user);
-
+	updatePool(e2, pid);
 	set(e2, pid, allocPoint, rewarderMock, overwrite);
 
 	uint256 pendingSushi_ = pendingSushi(e3, pid, user);
@@ -252,7 +266,7 @@ rule correctEffectOfChangeToAllocPoint(uint256 pid, address user,
 rule sushiGivenInHarvestEqualsPendingSushi(uint256 pid, address user, address to) {
 	env e;
 
-	require to == user && user != currentContract;
+	require to == user && user != currentContract && e.msg.sender == user;
 	require sushiToken == SUSHI();
 
 	uint256 userSushiBalance = sushiToken.balanceOf(e, user);
@@ -277,10 +291,13 @@ rule depositThenWithdraw(uint256 pid, address user, uint256 amount, address to) 
 
 	deposit(e, pid, amount, to);
 	withdraw(e, pid, amount, to);
-
+	//TODO - see if we can check for non revert
+	//withdraw@withrevert(e, pid, amount, to);
+	//bool succ = !lastReverted;
 	uint256 userInfoAmount_ = userInfoAmount(pid, user);
 	int256 userInfoRewardDebt_ = userInfoRewardDebt(pid, user);
 
+	//assert(succ, "user can not withdraw");
 	assert(_userInfoAmount == userInfoAmount_, "user amount changed");
 	assert(intEquality(_userInfoRewardDebt, userInfoRewardDebt_),
 		   "user reward debt changed");

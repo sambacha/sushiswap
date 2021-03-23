@@ -49,6 +49,16 @@ contract MasterChefV2Harness is MasterChefV2 {
         return symbolicSushiPerBlock[block.number];
     }
 
+    mapping(uint256 => mapping (uint64 => mapping( uint256 => uint256))) symbolicSushiReward; // random number
+    function calculateSushiReward(uint256 blocks, uint64 poolAllocPoint) override internal returns (uint256) {
+        return symbolicSushiReward[blocks][poolAllocPoint][totalAllocPoint];
+    }
+
+    mapping(uint256 => mapping( uint256 => uint256)) symbolicSushiPerShare; // random number
+    function calculateSushiPerShare(uint256 sushiReward, uint256 lpSupply ) override internal returns (uint256) {
+        return (sushiReward.mul(ACC_SUSHI_PRECISION) / lpSupply).to128();
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     //                            General Helpers                             //
     ////////////////////////////////////////////////////////////////////////////
