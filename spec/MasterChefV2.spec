@@ -40,8 +40,9 @@ methods {
 	permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) => NONDET
 	
 	// General Helpers
-	compare(int256 x, int256 y) returns (bool) envfree // Helper for int operations
-	intEquality(int256 x, int256 y) returns (bool) envfree // Helper for to check int equality
+	compare(int256 x, int256 y) returns (bool) envfree // Helper to check <= for int256
+	intEquality(int256 x, int256 y) returns (bool) envfree // Helper to check int equality
+	compareUint128(uint128 x, uint128 y) returns (bool) envfree // Helper to check >= for uint128
 
 	// Helper Invariant Functions
 	poolLength() returns (uint256) envfree
@@ -74,28 +75,25 @@ invariant existanceOfPid(uint256 pid, address user)
 invariant integrityOfLength() 
 	poolLength() == lpTokenLength() && lpTokenLength() == rewarderLength()
 
-// invariant validityOfLpToken()
-// 	(userInfoAmount(pid, user) > 0) => (lpToken(pid) != 0)
+invariant validityOfLpToken(uint256 pid, address user)
+	(userInfoAmount(pid, user) > 0) => (lpToken(pid) != 0)
 
 // Invariants as Rules
 
 // failing because of updatePool from lines 170 - 174, I don't understand what's wrong.
 // I looked carefully, but seems fine to me. Ask Nurit to take a look.
 // Work in progress ...
-rule monotonicityOfAccSushiPerShare(uint256 pid /*, method f*/) {
+rule monotonicityOfAccSushiPerShare(uint256 pid, method f) {
 	env e;
 
 	uint128 _poolInfoAccSushiPerShare = poolInfoAccSushiPerShare(pid);
 
 	calldataarg args;
-	//f(e, args);
-	updatePool(e, pid);
+	f(e, args);
 
 	uint128 poolInfoAccSushiPerShare_ = poolInfoAccSushiPerShare(pid);
 
-	//assert(poolInfoAccSushiPerShare_ >= _poolInfoAccSushiPerShare, 
-	//	   "poolInfo accSushiPerShare not monotonic");
-	assert compareUint128(e, poolInfoAccSushiPerShare_, _poolInfoAccSushiPerShare);
+	assert compareUint128(poolInfoAccSushiPerShare_, _poolInfoAccSushiPerShare);
 }
 
 rule monotonicityOfLastRewardBlock(uint256 pid, method f) {
@@ -174,9 +172,30 @@ rule noChangeToOtherUsersRewardDebt(method f, uint256 pid, uint256 amount,
 	}
 }
 
-// rule noChangeToOtherPool(uint256 pid1, uint256 pid2) {
+rule noChangeToOtherPool(uint256 pid, uint256 otherPid) {
+	require pid != otherPid;
 
-// }
+	uint128 _otherAccSushiPerShare = poolInfoAccSushiPerShare(otherPid);
+	uint64 _otherLastRewardBlock = poolInfoLastRewardBlock(otherPid);
+	uint64 _otherAllocPoint = poolInfoAllocPoint(otherPid);
+
+	method f;
+	uint256 allocPoint;
+	bool overwrite;
+	address user;
+	uint256 amount;
+	callFunctionWithParams(f, pid, allocPoint, overwrite, user, amount);
+
+	uint128 otherAccSushiPerShare_ = poolInfoAccSushiPerShare(otherPid);
+	uint64 otherLastRewardBlock_ = poolInfoLastRewardBlock(otherPid);
+	uint64 otherAllocPoint_ = poolInfoAllocPoint(otherPid);
+
+	assert(_otherAccSushiPerShare == otherAccSushiPerShare_, "accSushiPerShare changed");
+
+	assert(_otherLastRewardBlock == otherLastRewardBlock_, "lastRewardBlock changed");
+
+	assert(_otherAllocPoint == otherAllocPoint_, "allocPoint changed");
+}
 
 // Only failing on init()
 rule preserveTotalAssetOfUser(method f, uint256 pid, address user,
@@ -269,22 +288,39 @@ rule depositThenWithdraw(uint256 pid, address user, uint256 amount, address to) 
 	
 // }
 
-// rule orderOfOpeerationWithdrawAndHarvest() {
-// 	env e;
-// 	storage initStorage = lastStorage;
+rule orderOfOperationWithdrawAndHarvest(uint256 pid, uint256 amount, address user) {
+	env e;
+	storage initStorage = lastStorage;
 
-// 	// call withdraw then harvest
+	// call withdraw then harvest
+	withdraw(e, pid, amount, user);
+	harvest(e, pid, user);
 
-// 	// store poolInfo1
-// 	// store userInfo1
+	uint128 splitScenarioAccSushiPerShare = poolInfoAccSushiPerShare(pid);
+	uint64 splitScenarioLastRewardBlock = poolInfoLastRewardBlock(pid);
+	uint64 splitScenarioAllocPoint = poolInfoAllocPoint(pid);
 
-// 	// call harvest then withdraw at initStorage
+	uint256 splitScenarioUserInfoAmount = userInfoAmount(pid, user);
+	int256 splitScenarioUserInfoRewardDebt = userInfoRewardDebt(pid, user);
 
-// 	// store poolInfo2
-// 	// store userInfo2
+	// call harvest then withdraw at initStorage
+	harvest(e, pid, user) at initStorage;
+	withdraw(e, pid, amount, user);
 
-// 	// check for equality among poolInfo1 == poolInfo2, userInfo1 == userInfo2
-// }
+	uint128 finalScenarioAccSushiPerShare = poolInfoAccSushiPerShare(pid);
+	uint64 finalScenarioLastRewardBlock = poolInfoLastRewardBlock(pid);
+	uint64 finalScenarioAllocPoint = poolInfoAllocPoint(pid);
+
+	uint256 finalScenarioUserInfoAmount = userInfoAmount(pid, user);
+	int256 finalScenarioUserInfoRewardDebt = userInfoRewardDebt(pid, user);
+
+	assert(splitScenarioAccSushiPerShare == finalScenarioAccSushiPerShare, "finalScenarioAccSushiPerShare");
+	assert(splitScenarioLastRewardBlock == finalScenarioLastRewardBlock, "finalScenarioLastRewardBlock");
+	assert(splitScenarioAllocPoint == splitScenarioAllocPoint, "splitScenarioAllocPoint");
+
+	assert(splitScenarioUserInfoAmount == finalScenarioUserInfoAmount, "finalScenarioUserInfoAmount");
+	assert(intEquality(splitScenarioUserInfoRewardDebt, finalScenarioUserInfoRewardDebt), "finalScenarioUserInfoRewardDebt");
+}
 
 // Can combine the additivity of deposit and withdraw using a helper function
 // Have them seperated just for now, once Nurit approves, combine them
@@ -373,3 +409,30 @@ rule additivityOfWithdrawOnRewardDebt(uint256 pid, uint256 x, uint256 y, address
 	assert(intEquality(splitScenarioUserRewardDebt, sumScenarioUserRewardDebt), 
 		   "withdraw is not additive on rewardDebt");
 }
+
+// Helper Functions
+
+// easy to use dispatcher (to call all methods with the same pid)
+function callFunctionWithParams(method f, uint256 pid, uint256 allocPoint,
+						        bool overwrite, address user, uint256 amount) {
+	env e;
+
+	if (f.selector == set(uint256, uint256, address, bool).selector) {
+		set(e, pid, allocPoint, rewarderMock, overwrite);
+	} else if (f.selector == pendingSushi(uint256, address).selector) {
+		pendingSushi(e, pid, user);
+	} else if (f.selector == updatePool(uint256).selector) {
+		updatePool(e, pid);
+	} else if (f.selector == deposit(uint256, uint256, address).selector) {
+		deposit(e, pid, amount, user);
+	} else if (f.selector == withdraw(uint256, uint256, address).selector) {
+		withdraw(e, pid, amount, user); 
+	} else if (f.selector == harvest(uint256, address).selector) {
+		harvest(e, pid, user);
+	} else if (f.selector == emergencyWithdraw(uint256, address).selector) {
+		emergencyWithdraw(e, pid, user);
+	} else {
+		calldataarg args;
+		f(e,args);
+	}
+}	
