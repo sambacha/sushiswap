@@ -57,8 +57,8 @@ contract MasterChefV2 is BoringOwnable, BoringBatchable {
     /// @dev Total allocation points. Must be the sum of all allocation points in all pools.
     uint256 totalAllocPoint;
 
-    uint256 private constant MASTERCHEF_SUSHI_PER_BLOCK = 1000;
-    uint256 public constant ACC_SUSHI_PRECISION = 10;
+    uint256 private constant MASTERCHEF_SUSHI_PER_BLOCK = 1e20; // 1000 if want to simplify
+    uint256 public constant ACC_SUSHI_PRECISION = 1e12; // 10 if want to simplify
     bytes4 private constant SIG_ON_SUSHI_REWARD = 0xbb6cc2ef; // onSushiReward(uint256,address,uint256)
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount, address indexed to);
@@ -122,8 +122,7 @@ contract MasterChefV2 is BoringOwnable, BoringBatchable {
     /// @param _rewarder Address of the rewarder delegate.
     /// @param overwrite True if _rewarder should be `set`. Otherwise `_rewarder` is ignored.
     function set(uint256 _pid, uint256 _allocPoint, IRewarder _rewarder, bool overwrite) public onlyOwner {
-        //TODO - added a bug to the code - need to remove this 
-        totalAllocPoint = totalAllocPoint/*.sub(poolInfo[_pid].allocPoint)*/.add(_allocPoint);
+        totalAllocPoint = totalAllocPoint.sub(poolInfo[_pid].allocPoint).add(_allocPoint);
         poolInfo[_pid].allocPoint = _allocPoint.to64();
         if (overwrite) { rewarder[_pid] = _rewarder; }
         emit LogSetPool(_pid, _allocPoint, overwrite ? _rewarder : rewarder[_pid], overwrite);
