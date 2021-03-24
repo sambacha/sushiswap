@@ -7,9 +7,7 @@
 
 // Declaration of contracts used in the sepc 
 using DummyERC20A as tokenA
-using DummyWeth as wethTokenImpl
-using SymbolicStrategy as strategyInstance
-using Borrower as borrower
+using DummyERC20B as tokenB
 using RewarderMock as rewarderMock
 using DummySUSHI as sushiToken
 
@@ -434,7 +432,7 @@ rule updatePoolRevert(uint256 pid) {
 	env e;
 
 	require e.msg.value == 0;
-	require lpToken(pid) != 0;
+	require lpToken(pid) == tokenA || lpToken(pid) == tokenB;
 
 	updatePool@withrevert(e, pid);
 	bool succ = !lastReverted;
