@@ -82,6 +82,17 @@ hook Sstore poolInfo[INDEX uint pid].(offset 24) uint newAllocPoint (uint oldAll
 invariant existenceOfPid(uint256 pid, address user)
 	pid > lpTokenLength() || 
 	(lpToken(pid) == 0) => (poolInfoAllocPoint(pid) == 0 && userInfoAmount(pid, user) == 0 && rewarder(pid) == 0)
+rule temp2(uint256 pid, uint256 length) {
+	require length == lpTokenLength();
+	require pid > lpTokenLength() || 
+	(lpToken(pid) == 0) => rewarder(pid) == 0;
+	env e;
+	uint256 allocPoint; 
+	 address _rewarder;
+	add(e, allocPoint, 0, _rewarder);
+	assert false;
+	//assert pid > lpTokenLength() ||  (lpToken(pid) == 0) => rewarder(pid) == 0;
+}
 
 invariant integrityOfLength() 
 	poolLength() == lpTokenLength() && lpTokenLength() == rewarderLength()
@@ -93,7 +104,18 @@ invariant validityOfLpToken(uint256 pid, address user)
 invariant integrityOfTotalAllocPoint()
 	allocPointSum() == totalAllocPoint()
 
+rule temp(uint256 before, uint256 after) {
+	require allocPointSum() == totalAllocPoint();
+	require before == allocPointSum();
+	env e;
+	calldataarg args;
+	add(e,args);
+	require after == allocPointSum();
+	assert allocPointSum() == totalAllocPoint();
+}
+
 // Invariants as Rules
+
 
 rule monotonicityOfAccSushiPerShare(uint256 pid, method f) {
 	env e;
