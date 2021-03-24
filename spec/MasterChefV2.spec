@@ -71,14 +71,13 @@ definition MAX_UINT256() returns uint256 =
 ghost allocPointSum() returns uint256 {
     init_state axiom allocPointSum() == 0;
 }
+
 // On an update to poolInfo[pid].allocPoint = newAllocPoint
-// where poolInfo[pid].allocPoint == oldAllocPoint before the assignmnet
+// where poolInfo[pid].allocPoint == oldAllocPoint before the assignment
 // We update allocPointSum() := allocPointSum() + newAllocPoint - oldAllocPoint
 hook Sstore poolInfo[INDEX uint pid].(offset 24) uint newAllocPoint (uint oldAllocPoint) STORAGE {
 	havoc allocPointSum assuming allocPointSum@new() == allocPointSum@old() + newAllocPoint - oldAllocPoint; 
 }
-
-
 
 // Invariants
 
@@ -94,7 +93,7 @@ invariant validityOfLpToken(uint256 pid, address user)
 
 // TODO: (1)
 invariant integrityOfTotalAllocPoint()
-		allocPointSum() == totalAllocPoint()
+	allocPointSum() == totalAllocPoint()
 
 // Invariants as Rules
 
@@ -254,6 +253,7 @@ rule correctEffectOfChangeToAllocPoint(uint256 pid, address user,
 	require e3.block.number >= e2.block.number;
 
 	uint256 _pendingSushi = pendingSushi(e1, pid, user);
+
 	updatePool(e2, pid);
 	set(e2, pid, allocPoint, rewarderMock, overwrite);
 
@@ -291,13 +291,15 @@ rule depositThenWithdraw(uint256 pid, address user, uint256 amount, address to) 
 
 	deposit(e, pid, amount, to);
 	withdraw(e, pid, amount, to);
-	//TODO - see if we can check for non revert
-	//withdraw@withrevert(e, pid, amount, to);
-	//bool succ = !lastReverted;
+
+	// TODO - see if we can check for non revert
+	// withdraw@withrevert(e, pid, amount, to);
+	// bool succ = !lastReverted;
+
 	uint256 userInfoAmount_ = userInfoAmount(pid, user);
 	int256 userInfoRewardDebt_ = userInfoRewardDebt(pid, user);
 
-	//assert(succ, "user can not withdraw");
+	// assert(succ, "user can not withdraw");
 	assert(_userInfoAmount == userInfoAmount_, "user amount changed");
 	assert(intEquality(_userInfoRewardDebt, userInfoRewardDebt_),
 		   "user reward debt changed");
@@ -453,4 +455,4 @@ function callFunctionWithParams(method f, uint256 pid, uint256 allocPoint,
 		calldataarg args;
 		f(e,args);
 	}
-}	
+}

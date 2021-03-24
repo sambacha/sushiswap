@@ -179,11 +179,11 @@ contract MasterChefV2 is BoringOwnable, BoringBatchable {
         }
     }
 
-    function calculateSushiReward(uint256 blocks, uint64 poolAllocPoint) virtual internal returns (uint256) {
+    function calculateSushiReward(uint256 blocks, uint64 poolAllocPoint) virtual view internal returns (uint256) {
         return blocks.mul(sushiPerBlock()).mul(poolAllocPoint) / totalAllocPoint;
     }
 
-    function calculateSushiPerShare(uint256 sushiReward, uint256 lpSupply ) virtual internal returns (uint256) {
+    function calculateSushiPerShare(uint256 sushiReward, uint256 lpSupply ) virtual pure internal returns (uint256) {
         return (sushiReward.mul(ACC_SUSHI_PRECISION) / lpSupply).to128();
     }
 
