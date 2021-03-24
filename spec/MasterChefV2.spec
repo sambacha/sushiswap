@@ -430,6 +430,18 @@ rule additivityOfWithdrawOnRewardDebt(uint256 pid, uint256 x, uint256 y, address
 		   "withdraw is not additive on rewardDebt");
 }
 
+rule updatePoolRevert(uint256 pid) {
+	env e;
+
+	require e.msg.value == 0;
+	require lpToken(pid) != 0;
+
+	updatePool@withrevert(e, pid);
+	bool succ = !lastReverted;
+
+	assert(succ, "updatePoolReverted");
+}
+
 // Helper Functions
 
 // easy to use dispatcher (to call all methods with the same pid)
