@@ -106,7 +106,4 @@ contract MasterChefV2Harness is MasterChefV2 {
     function rewarderLength() public view returns (uint256) {
         return rewarder.length;
     }
-
-
-
 }

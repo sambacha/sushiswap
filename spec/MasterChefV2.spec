@@ -56,7 +56,6 @@ methods {
 	SUSHI() returns (address) envfree
 	sushiToken.balanceOf(address) returns (uint256)  
 
-
 	// Rewarder
 	//SIG_ON_SUSHI_REWARD = 0xbb6cc2ef; // onSushiReward(uint256,address,uint256)
 	0xbb6cc2ef => NONDET
@@ -70,10 +69,9 @@ methods {
 definition MAX_UINT256() returns uint256 =
 	0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
 
-
-
-// extract  alloPoint field form the pollInfo packed strcut
-definition PoolInfo_allocPoint(uint256 poolInfo) returns uint256 = (poolInfo & 0xffffffffffffffff000000000000000000000000000000000000000000000000) >>> 192;
+// extract alloPoint field form the poolInfo packed struct
+definition PoolInfo_allocPoint(uint256 poolInfo) returns uint256 =
+	(poolInfo & 0xffffffffffffffff000000000000000000000000000000000000000000000000) >>> 192;
 
 ghost allocPointSum() returns uint256 {
     init_state axiom allocPointSum() == 0;
@@ -89,10 +87,7 @@ hook Sstore poolInfo[INDEX uint pid].(offset 0) uint newPoolInfo (uint oldPoolIn
                                      allocPointSum@old() + newAllocPoint - oldAllocPoint;
 }
 
-
 // Invariants
-
-
 
 invariant integrityOfLength() 
 	poolLength() == lpTokenLength() && lpTokenLength() == rewarderLength()
@@ -107,7 +102,8 @@ invariant validityOfLpToken(uint256 pid, address user)
 rule integrityOfTotalAllocPoint(method f) {
 	env e;
 	require allocPointSum() == totalAllocPoint();
-	//Comment for Vasu - we have an issue with the ghost only for the add function
+	// Since the tool doesn't support ghost with addition as changes, we
+	// have to treat add as a special case
 	if (f.selector == add(uint256, address, address).selector) {
 		uint256 before = totalAllocPoint();
 		uint256 allocPoint;
@@ -122,8 +118,6 @@ rule integrityOfTotalAllocPoint(method f) {
 		assert allocPointSum() == totalAllocPoint();
 	}
 }
-
-
 
 rule monotonicityOfAccSushiPerShare(uint256 pid, method f) {
 	env e;
@@ -219,10 +213,10 @@ rule noChangeToOtherPool(uint256 pid, uint256 otherPid) {
 	uint64 _otherAllocPoint = poolInfoAllocPoint(otherPid);
 
 	method f;
-	env e;
 	address msgSender;
 	require f.selector != massUpdatePools(uint256[]).selector;
 	address to;
+
 	callFunctionWithParams(f, pid, msgSender, to);
 
 	uint128 otherAccSushiPerShare_ = poolInfoAccSushiPerShare(otherPid);
@@ -263,60 +257,70 @@ rule preserveTotalAssetOfUser(method f, uint256 pid, address user,
 		   "total user balance is not preserved");
 }
 
-
 rule changeToAtmostOneUserAmount(uint256 pid, address u, address v, method f) {
 	require u != v;
 	require u != currentContract && v != currentContract;
-	uint256 _balanceU = userLpTokenBalanceOf(pid, u); 
-	uint256 _balanceV = userLpTokenBalanceOf(pid, v); 
+
+	uint256 _balanceU = userLpTokenBalanceOf(pid, u);
+	uint256 _balanceV = userLpTokenBalanceOf(pid, v);
+
 	env e;
 	calldataarg args;
 	f(e,args);
-	uint256 balanceU_ = userLpTokenBalanceOf(pid, u); 
-	uint256 balanceV_ = userLpTokenBalanceOf(pid, v); 
+
+	uint256 balanceU_ = userLpTokenBalanceOf(pid, u);
+	uint256 balanceV_ = userLpTokenBalanceOf(pid, v);
+
 	assert !(balanceV_ != _balanceV && balanceU_ != _balanceU);
 }
-
 
 rule solvency(uint256 pid, address u, address lptoken, method f) {
 	require lptoken == lpToken(pid);
 	require lptoken != SUSHI();
-	uint256 _balance = userLpTokenBalanceOf(pid, currentContract); //todo - maybe rename this to LpTokenBalanceOf
+
+	uint256 _balance = userLpTokenBalanceOf(pid, currentContract); // TODO - maybe rename this to LpTokenBalanceOf
 	uint256 _userAmount = userInfoAmount(pid, u); 
+
 	address sender;
 	require sender != currentContract;
+
 	address to;
 	require to != currentContract;
+
 	callFunctionWithParams(f, pid, sender, to);
+
 	uint256 userAmount_ = userInfoAmount(pid, u); 
 	uint256 balance_ = userLpTokenBalanceOf(pid, currentContract); 
-	assert userAmount_ != _userAmount => (userAmount_ - _userAmount == balance_ - _balance );
 
+	assert userAmount_ != _userAmount => (userAmount_ - _userAmount == balance_ - _balance);
 }
-
-
 
 rule solvencyOfSushiBalance(uint256 pid, address user, method f) {
 	env e;
 	require sushiToken == SUSHI();
+
 	uint256 _balance = sushiToken.balanceOf(e, currentContract);
+
 	require e.block.number == poolInfoLastRewardBlock(pid);
+
 	uint128 accSushiPerShare = poolInfoAccSushiPerShare(pid);
 	uint256 _userInfoAmount = userInfoAmount(pid, user);
 	int256 _userInfoReward = userInfoRewardDebt(pid, user);
-	int256 _userSushi = sub( mul(accSushiPerShare, _userInfoAmount)  , _userInfoReward);
+	int256 _userSushi = sub(mul(accSushiPerShare, _userInfoAmount)  , _userInfoReward);
+
 	calldataarg args;
 	f(e, args);
+
 	uint256 balance_ = sushiToken.balanceOf(e, currentContract);
 	uint256 userInfoAmount_ = userInfoAmount(pid, user);
 	int256 userInfoReward_ = userInfoRewardDebt(pid, user);
 	int256 userSushi_ = sub( mul(accSushiPerShare,userInfoAmount_) , userInfoReward_);
 	int256 changeUserSushi = sub(userSushi_, _userSushi);
 	int256 changeSushiBalance = sub(balance_, _balance);
-	assert ( userInfoAmount_ != _userInfoAmount || userInfoAmount_ != _userInfoAmount) =>
-		intEquality(changeUserSushi, changeSushiBalance) ;
-} 
 
+	assert (userInfoAmount_ != _userInfoAmount || userInfoAmount_ != _userInfoAmount) =>
+		intEquality(changeUserSushi, changeSushiBalance) ;
+}
 
 rule correctEffectOfChangeToAllocPoint(uint256 pid, address user,
 									   uint256 allocPoint, bool overwrite) {
@@ -330,6 +334,7 @@ rule correctEffectOfChangeToAllocPoint(uint256 pid, address user,
 	uint256 _pendingSushi = pendingSushi(e1, pid, user);
 
 	updatePool(e2, pid);
+
 	address rewarder;
 	set(e2, pid, allocPoint, rewarder, overwrite);
 
@@ -529,7 +534,9 @@ function callFunctionWithParams( method f, uint256 pid, address sender, address 
 	bool overwrite;
 	uint256 amount;
 	address rewarder;
+
 	require e.msg.sender == sender;
+	
 	if (f.selector == set(uint256, uint256, address, bool).selector) {
 		set(e, pid, allocPoint, rewarder, overwrite);
 	} else if (f.selector == pendingSushi(uint256, address).selector) {
