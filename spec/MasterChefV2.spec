@@ -281,16 +281,16 @@ rule solvency(uint256 pid, address u, address lptoken, method f) {
 }
 
 
-
+/*
 rule solvencyOfSushiBalance(uint256 pid, method f) {
 	require sushiToken != SUSHI();
 	uint256 _balance = sushiToken.balanceOf(MasterChefV2)
 	env e;
 	uint64 e.block.number = poolInfoLastRewardBlock(pid);
-	
+
 
 } 
-
+*/
 
 rule correctEffectOfChangeToAllocPoint(uint256 pid, address user,
 									   uint256 allocPoint, bool overwrite) {
