@@ -8,7 +8,6 @@
 // Declaration of contracts used in the sepc 
 using DummyERC20A as tokenA
 using DummyERC20B as tokenB
-using RewarderMock as rewarderMock
 using DummySUSHI as sushiToken
 
 /*
@@ -53,6 +52,7 @@ methods {
 	SUSHI() returns (address) envfree
 	sushiToken.balanceOf(address) returns (uint256)  
 
+
 	// Rewarder
 	//SIG_ON_SUSHI_REWARD = 0xbb6cc2ef; // onSushiReward(uint256,address,uint256)
 	0xbb6cc2ef => NONDET
@@ -66,6 +66,9 @@ methods {
 definition MAX_UINT256() returns uint256 =
 	0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
 
+// extrac rge alloPoint field form the pollInfo packed strcut
+definition PoolInfo_allocPoint(uint256 poolInfo) returns uint256 = (poolInfo & 0xffffffffffffffff000000000000000000000000000000000000000000000000) >>> 192;
+
 ghost allocPointSum() returns uint256 {
     init_state axiom allocPointSum() == 0;
 }
@@ -73,32 +76,23 @@ ghost allocPointSum() returns uint256 {
 // On an update to poolInfo[pid].allocPoint = newAllocPoint
 // where poolInfo[pid].allocPoint == oldAllocPoint before the assignment
 // We update allocPointSum() := allocPointSum() + newAllocPoint - oldAllocPoint
-hook Sstore poolInfo[INDEX uint pid].(offset 24) uint newAllocPoint (uint oldAllocPoint) STORAGE {
-	havoc allocPointSum assuming allocPointSum@new() == allocPointSum@old() + newAllocPoint - oldAllocPoint; 
+hook Sstore poolInfo[INDEX uint pid].(offset 0) uint newPoolInfo (uint oldPoolInfo) STORAGE {
+    uint256 oldAllocPoint = PoolInfo_allocPoint(oldPoolInfo);
+    uint256 newAllocPoint = PoolInfo_allocPoint(newPoolInfo);
+    havoc allocPointSum assuming allocPointSum@new() ==
+                                     allocPointSum@old() + newAllocPoint - oldAllocPoint;
 }
+
 
 // Invariants
 
-invariant existenceOfPid(uint256 pid, address user)
-	pid > lpTokenLength() || 
-	(lpToken(pid) == 0) => (poolInfoAllocPoint(pid) == 0 && userInfoAmount(pid, user) == 0 && rewarder(pid) == 0)
-rule temp2(uint256 pid, uint256 length) {
-	require length == lpTokenLength();
-	require pid > lpTokenLength() || 
-	(lpToken(pid) == 0) => rewarder(pid) == 0;
-	env e;
-	uint256 allocPoint; 
-	 address _rewarder;
-	add(e, allocPoint, 0, _rewarder);
-	assert false;
-	//assert pid > lpTokenLength() ||  (lpToken(pid) == 0) => rewarder(pid) == 0;
-}
+
 
 invariant integrityOfLength() 
 	poolLength() == lpTokenLength() && lpTokenLength() == rewarderLength()
 
 invariant validityOfLpToken(uint256 pid, address user)
-	(userInfoAmount(pid, user) > 0) => (lpToken(pid) != 0)
+	(userInfoAmount(pid, user) > 0) => ( lpToken(pid) != 0 )
 
 // TODO: (1)
 invariant integrityOfTotalAllocPoint()
@@ -211,14 +205,11 @@ rule noChangeToOtherPool(uint256 pid, uint256 otherPid) {
 	uint64 _otherAllocPoint = poolInfoAllocPoint(otherPid);
 
 	method f;
+	env e;
+	address msgSender;
 	require f.selector != massUpdatePools(uint256[]).selector;
-
-	uint256 allocPoint;
-	bool overwrite;
-	address user;
-	uint256 amount;
-
-	callFunctionWithParams(f, pid, allocPoint, overwrite, user, amount);
+	address to;
+	callFunctionWithParams(f, pid, msgSender, to);
 
 	uint128 otherAccSushiPerShare_ = poolInfoAccSushiPerShare(otherPid);
 	uint64 otherLastRewardBlock_ = poolInfoLastRewardBlock(otherPid);
@@ -275,7 +266,8 @@ rule correctEffectOfChangeToAllocPoint(uint256 pid, address user,
 	uint256 _pendingSushi = pendingSushi(e1, pid, user);
 
 	updatePool(e2, pid);
-	set(e2, pid, allocPoint, rewarderMock, overwrite);
+	address rewarder;
+	set(e2, pid, allocPoint, rewarder, overwrite);
 
 	uint256 pendingSushi_ = pendingSushi(e3, pid, user);
 
@@ -462,27 +454,61 @@ rule updatePoolRevert(uint256 pid) {
 	assert(succ, "updatePoolReverted");
 }
 
+
+rule changeToAtmostOneUserAmount(uint256 pid, address u, address v, method f) {
+	require u != v;
+	require u != currentContract && v != currentContract;
+	uint256 _balanceU = userLpTokenBalanceOf(pid, u); 
+	uint256 _balanceV = userLpTokenBalanceOf(pid, v); 
+	env e;
+	calldataarg args;
+	f(e,args);
+	uint256 balanceU_ = userLpTokenBalanceOf(pid, u); 
+	uint256 balanceV_ = userLpTokenBalanceOf(pid, v); 
+	assert !(balanceV_ != _balanceV && balanceU_ != _balanceU);
+}
+
+
+rule solvency(uint256 pid, address u, address lptoken, method f) {
+	require lptoken == lpToken(pid);
+	requie lptoken != SUSHI();
+	uint256 _balance = userLpTokenBalanceOf(pid, currentContract); //todo - maybe rename this to LpTokenBalanceOf
+	uint256 _userAmount = userInfoAmount(pid, u); 
+	address sender;
+	require sender != currentContract;
+	address to;
+	require to != currentContract
+	callFunctionWithParams(f, pid, sender, address to);
+	uint256 userAmount_ = userInfoAmount(pid, u); 
+	uint256 balance_ = userLpTokenBalanceOf(pid, currentContract); 
+	assert (userAmount_ - _userAmount == balance_ - _balance );
+
+}
+
 // Helper Functions
 
 // easy to use dispatcher (to call all methods with the same pid)
-function callFunctionWithParams(method f, uint256 pid, uint256 allocPoint,
-						        bool overwrite, address user, uint256 amount) {
+function callFunctionWithParams( method f, uint256 pid, address sender, address to) {
 	env e;
-
+	uint256 allocPoint;
+	bool overwrite;
+	uint256 amount;
+	address rewarder;
+	require e.msg.sender == sender;
 	if (f.selector == set(uint256, uint256, address, bool).selector) {
-		set(e, pid, allocPoint, rewarderMock, overwrite);
+		set(e, pid, allocPoint, rewarder, overwrite);
 	} else if (f.selector == pendingSushi(uint256, address).selector) {
-		pendingSushi(e, pid, user);
+		pendingSushi(e, pid, to);
 	} else if (f.selector == updatePool(uint256).selector) {
 		updatePool(e, pid);
 	} else if (f.selector == deposit(uint256, uint256, address).selector) {
-		deposit(e, pid, amount, user);
+		deposit(e, pid, amount, to);
 	} else if (f.selector == withdraw(uint256, uint256, address).selector) {
-		withdraw(e, pid, amount, user); 
+		withdraw(e, pid, amount, to); 
 	} else if (f.selector == harvest(uint256, address).selector) {
 		harvest(e, pid, user);
 	} else if (f.selector == emergencyWithdraw(uint256, address).selector) {
-		emergencyWithdraw(e, pid, user);
+		emergencyWithdraw(e, pid, to);
 	} else {
 		calldataarg args;
 		f(e,args);

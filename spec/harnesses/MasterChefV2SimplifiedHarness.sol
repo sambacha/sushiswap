@@ -14,10 +14,6 @@ contract MasterChefV2SimplifiedHarness is MasterChefV2Harness {
     //                           Overrided Methods                            //
     ////////////////////////////////////////////////////////////////////////////
 
-    mapping(uint256 => uint256) symbolicSushiPerBlock; // random number
-    function sushiPerBlock() public view override returns (uint256 amount) {
-        return symbolicSushiPerBlock[block.number];
-    }
 
     mapping(uint256 => mapping(uint64 => mapping( uint256 => uint256))) symbolicSushiReward; // random number
     function calculateSushiReward(uint256 blocks, uint64 poolAllocPoint) override internal returns (uint256) {
