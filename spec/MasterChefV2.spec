@@ -249,10 +249,48 @@ rule preserveTotalAssetOfUser(method f, uint256 pid, address user,
 		   "total user balance is not preserved");
 }
 
-// TODO: (2)
-// rule solvency() { 
 
-// }
+rule changeToAtmostOneUserAmount(uint256 pid, address u, address v, method f) {
+	require u != v;
+	require u != currentContract && v != currentContract;
+	uint256 _balanceU = userLpTokenBalanceOf(pid, u); 
+	uint256 _balanceV = userLpTokenBalanceOf(pid, v); 
+	env e;
+	calldataarg args;
+	f(e,args);
+	uint256 balanceU_ = userLpTokenBalanceOf(pid, u); 
+	uint256 balanceV_ = userLpTokenBalanceOf(pid, v); 
+	assert !(balanceV_ != _balanceV && balanceU_ != _balanceU);
+}
+
+
+rule solvency(uint256 pid, address u, address lptoken, method f) {
+	require lptoken == lpToken(pid);
+	require lptoken != SUSHI();
+	uint256 _balance = userLpTokenBalanceOf(pid, currentContract); //todo - maybe rename this to LpTokenBalanceOf
+	uint256 _userAmount = userInfoAmount(pid, u); 
+	address sender;
+	require sender != currentContract;
+	address to;
+	require to != currentContract;
+	callFunctionWithParams(f, pid, sender, to);
+	uint256 userAmount_ = userInfoAmount(pid, u); 
+	uint256 balance_ = userLpTokenBalanceOf(pid, currentContract); 
+	assert userAmount_ != _userAmount => (userAmount_ - _userAmount == balance_ - _balance );
+
+}
+
+
+
+rule solvencyOfSushiBalance(uint256 pid, method f) {
+	require sushiToken != SUSHI();
+	uint256 _balance = sushiToken.balanceOf(MasterChefV2)
+	env e;
+	uint64 e.block.number = poolInfoLastRewardBlock(pid);
+	
+
+} 
+
 
 rule correctEffectOfChangeToAllocPoint(uint256 pid, address user,
 									   uint256 allocPoint, bool overwrite) {
@@ -455,35 +493,6 @@ rule updatePoolRevert(uint256 pid) {
 }
 
 
-rule changeToAtmostOneUserAmount(uint256 pid, address u, address v, method f) {
-	require u != v;
-	require u != currentContract && v != currentContract;
-	uint256 _balanceU = userLpTokenBalanceOf(pid, u); 
-	uint256 _balanceV = userLpTokenBalanceOf(pid, v); 
-	env e;
-	calldataarg args;
-	f(e,args);
-	uint256 balanceU_ = userLpTokenBalanceOf(pid, u); 
-	uint256 balanceV_ = userLpTokenBalanceOf(pid, v); 
-	assert !(balanceV_ != _balanceV && balanceU_ != _balanceU);
-}
-
-
-rule solvency(uint256 pid, address u, address lptoken, method f) {
-	require lptoken == lpToken(pid);
-	requie lptoken != SUSHI();
-	uint256 _balance = userLpTokenBalanceOf(pid, currentContract); //todo - maybe rename this to LpTokenBalanceOf
-	uint256 _userAmount = userInfoAmount(pid, u); 
-	address sender;
-	require sender != currentContract;
-	address to;
-	require to != currentContract
-	callFunctionWithParams(f, pid, sender, address to);
-	uint256 userAmount_ = userInfoAmount(pid, u); 
-	uint256 balance_ = userLpTokenBalanceOf(pid, currentContract); 
-	assert (userAmount_ - _userAmount == balance_ - _balance );
-
-}
 
 // Helper Functions
 
@@ -506,7 +515,7 @@ function callFunctionWithParams( method f, uint256 pid, address sender, address 
 	} else if (f.selector == withdraw(uint256, uint256, address).selector) {
 		withdraw(e, pid, amount, to); 
 	} else if (f.selector == harvest(uint256, address).selector) {
-		harvest(e, pid, user);
+		harvest(e, pid, to);
 	} else if (f.selector == emergencyWithdraw(uint256, address).selector) {
 		emergencyWithdraw(e, pid, to);
 	} else {
