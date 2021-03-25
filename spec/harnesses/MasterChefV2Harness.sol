@@ -71,6 +71,28 @@ contract MasterChefV2Harness is MasterChefV2 {
         return difference >= -1 && difference <= 1;
     }
 
+    function sub(uint256 a, int256 b) external pure returns (int256) {
+        if (b >= 0) {
+            uint256 b_ = uint256(b);
+            return int256(a.add(b_)) ;
+        } else if (b < 0) {
+            uint256 b_ = uint256(-b);
+            return int256(a.sub(b_)); 
+        }
+    }
+
+    function sub(int256 a, int256 b) external pure returns (int256) {
+        return a.sub(b);
+    }
+
+    function sub(uint256 a, uint256 b) external pure returns (int256) {
+        return int256(a - b);
+    }
+
+    function mul(uint256 a, uint256 b) external pure returns (uint256) {
+        return a.mul(b);
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     //                     Helper Functions for Invariants                    //
     ////////////////////////////////////////////////////////////////////////////

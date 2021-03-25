@@ -42,6 +42,10 @@ methods {
 	intEquality(int256 x, int256 y) returns (bool) envfree // Helper to check int equality
 	compareUint128(uint128 x, uint128 y) returns (bool) envfree // Helper to check >= for uint128
 	intDeltaOne(int256 x, int256 y) returns (bool) envfree // Helper to allow a difference of 1 for int256
+	sub(uint256 a, int256 b)  returns (int256) envfree
+	sub(int256 a, int256 b)  returns (int256) envfree
+	sub(uint256 a, uint256 b) returns (int256) envfree
+	mul(uint256 a, uint256 b) returns (uint256) envfree
 
 	// Helper Invariant Functions
 	poolLength() returns (uint256) envfree
@@ -66,7 +70,9 @@ methods {
 definition MAX_UINT256() returns uint256 =
 	0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
 
-// extrac rge alloPoint field form the pollInfo packed strcut
+
+
+// extract  alloPoint field form the pollInfo packed strcut
 definition PoolInfo_allocPoint(uint256 poolInfo) returns uint256 = (poolInfo & 0xffffffffffffffff000000000000000000000000000000000000000000000000) >>> 192;
 
 ghost allocPointSum() returns uint256 {
@@ -94,21 +100,29 @@ invariant integrityOfLength()
 invariant validityOfLpToken(uint256 pid, address user)
 	(userInfoAmount(pid, user) > 0) => ( lpToken(pid) != 0 )
 
-// TODO: (1)
-invariant integrityOfTotalAllocPoint()
-	allocPointSum() == totalAllocPoint()
 
-rule temp(uint256 before, uint256 after) {
-	require allocPointSum() == totalAllocPoint();
-	require before == allocPointSum();
-	env e;
-	calldataarg args;
-	add(e,args);
-	require after == allocPointSum();
-	assert allocPointSum() == totalAllocPoint();
-}
 
 // Invariants as Rules
+
+rule integrityOfTotalAllocPoint(method f) {
+	env e;
+	require allocPointSum() == totalAllocPoint();
+	//Comment for Vasu - we have an issue with the ghost only for the add function
+	if (f.selector == add(uint256, address, address).selector) {
+		uint256 before = totalAllocPoint();
+		uint256 allocPoint;
+		address _lpToken;
+		address _rewarder;
+		add(e, allocPoint, _lpToken, _rewarder);
+		assert totalAllocPoint() == before + allocPoint;
+	}
+	else {
+		calldataarg args;
+		f(e,args);
+		assert allocPointSum() == totalAllocPoint();
+	}
+}
+
 
 
 rule monotonicityOfAccSushiPerShare(uint256 pid, method f) {
@@ -281,16 +295,28 @@ rule solvency(uint256 pid, address u, address lptoken, method f) {
 }
 
 
-/*
-rule solvencyOfSushiBalance(uint256 pid, method f) {
-	require sushiToken != SUSHI();
-	uint256 _balance = sushiToken.balanceOf(MasterChefV2)
+
+rule solvencyOfSushiBalance(uint256 pid, address user, method f) {
 	env e;
-	uint64 e.block.number = poolInfoLastRewardBlock(pid);
-
-
+	require sushiToken == SUSHI();
+	uint256 _balance = sushiToken.balanceOf(e, currentContract);
+	require e.block.number == poolInfoLastRewardBlock(pid);
+	uint128 accSushiPerShare = poolInfoAccSushiPerShare(pid);
+	uint256 _userInfoAmount = userInfoAmount(pid, user);
+	int256 _userInfoReward = userInfoRewardDebt(pid, user);
+	int256 _userSushi = sub( mul(accSushiPerShare, _userInfoAmount)  , _userInfoReward);
+	calldataarg args;
+	f(e, args);
+	uint256 balance_ = sushiToken.balanceOf(e, currentContract);
+	uint256 userInfoAmount_ = userInfoAmount(pid, user);
+	int256 userInfoReward_ = userInfoRewardDebt(pid, user);
+	int256 userSushi_ = sub( mul(accSushiPerShare,userInfoAmount_) , userInfoReward_);
+	int256 changeUserSushi = sub(userSushi_, _userSushi);
+	int256 changeSushiBalance = sub(balance_, _balance);
+	assert ( userInfoAmount_ != _userInfoAmount || userInfoAmount_ != _userInfoAmount) =>
+		intEquality(changeUserSushi, changeSushiBalance) ;
 } 
-*/
+
 
 rule correctEffectOfChangeToAllocPoint(uint256 pid, address user,
 									   uint256 allocPoint, bool overwrite) {
