@@ -132,15 +132,15 @@ contract MasterChefV2 is BoringOwnable, BoringBatchable {
     /// @param _pid The index of the pool. See `poolInfo`.
     /// @param _user Address of user.
     /// @return pending SUSHI reward for a given user.
-    function pendingSushi(uint256 _pid, address _user) external view returns (uint256 pending) {
+    function pendingSushi(uint256 _pid, address _user) external returns (uint256 pending) {
         PoolInfo memory pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
         uint256 accSushiPerShare = pool.accSushiPerShare;
         uint256 lpSupply = lpToken[_pid].balanceOf(address(this));
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
             uint256 blocks = block.number.sub(pool.lastRewardBlock);
-            uint256 sushiReward = blocks.mul(sushiPerBlock()).mul(pool.allocPoint) / totalAllocPoint;
-            accSushiPerShare = accSushiPerShare.add(sushiReward.mul(ACC_SUSHI_PRECISION) / lpSupply);
+            uint256 sushiReward = calculateSushiReward(blocks, pool.allocPoint); 
+            accSushiPerShare = pool.accSushiPerShare.add(calculateSushiPerShare(sushiReward, lpSupply)); 
         }
         pending = int256(user.amount.mul(accSushiPerShare) / ACC_SUSHI_PRECISION).sub(user.rewardDebt).toUInt256();
     }
@@ -170,7 +170,7 @@ contract MasterChefV2 is BoringOwnable, BoringBatchable {
             if (lpSupply > 0) {
                 uint256 blocks = block.number.sub(pool.lastRewardBlock);
                 uint256 sushiReward = calculateSushiReward(blocks, pool.allocPoint); // blocks.mul(sushiPerBlock()).mul(pool.allocPoint) / totalAllocPoint;
-                pool.accSushiPerShare = pool.accSushiPerShare.add(calculateSushiPerShare(sushiReward, lpSupply).to128()); //((sushiReward.mul(ACC_SUSHI_PRECISION) / lpSupply).to128());
+                pool.accSushiPerShare = pool.accSushiPerShare.add(calculateSushiPerShare(sushiReward, lpSupply)); // ((sushiReward.mul(ACC_SUSHI_PRECISION) / lpSupply).to128());
             }
             pool.lastRewardBlock = block.number.to64();
             poolInfo[pid] = pool;
@@ -178,11 +178,12 @@ contract MasterChefV2 is BoringOwnable, BoringBatchable {
         }
     }
 
+    // have to assume additivity for updatePoolAdditive
     function calculateSushiReward(uint256 blocks, uint64 poolAllocPoint) virtual internal returns (uint256) {
         return blocks.mul(sushiPerBlock()).mul(poolAllocPoint) / totalAllocPoint;
     }
 
-    function calculateSushiPerShare(uint256 sushiReward, uint256 lpSupply ) virtual internal returns (uint256) {
+    function calculateSushiPerShare(uint256 sushiReward, uint256 lpSupply ) virtual internal returns (uint128) {
         return (sushiReward.mul(ACC_SUSHI_PRECISION) / lpSupply).to128();
     }
 

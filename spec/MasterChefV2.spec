@@ -29,6 +29,9 @@ methods {
 	lpToken(uint256 pid) returns (address) envfree
 	rewarder(uint256 pid) returns (address) envfree
 
+	// overrided methods
+	sushiPerBlock() returns (uint256 amount)
+
 	// ERC20 
 	balanceOf(address) => DISPATCHER(true) 
 	totalSupply() => DISPATCHER(true)
@@ -42,8 +45,8 @@ methods {
 	intEquality(int256 x, int256 y) returns (bool) envfree // Helper to check int equality
 	compareUint128(uint128 x, uint128 y) returns (bool) envfree // Helper to check >= for uint128
 	intDeltaOne(int256 x, int256 y) returns (bool) envfree // Helper to allow a difference of 1 for int256
-	sub(uint256 a, int256 b)  returns (int256) envfree
-	sub(int256 a, int256 b)  returns (int256) envfree
+	sub(uint256 a, int256 b) returns (int256) envfree
+	sub(int256 a, int256 b) returns (int256) envfree
 	sub(uint256 a, uint256 b) returns (int256) envfree
 	mul(uint256 a, uint256 b) returns (uint256) envfree
 
@@ -57,7 +60,7 @@ methods {
 	sushiToken.balanceOf(address) returns (uint256)  
 
 	// Rewarder
-	//SIG_ON_SUSHI_REWARD = 0xbb6cc2ef; // onSushiReward(uint256,address,uint256)
+	// SIG_ON_SUSHI_REWARD = 0xbb6cc2ef; // onSushiReward(uint256,address,uint256)
 	0xbb6cc2ef => NONDET
 
 	// MasterChefV1
@@ -65,6 +68,8 @@ methods {
 }
 
 // Constants
+
+definition MAX_UINT64() returns uint64 = 0xFFFFFFFFFFFFFFFF;
 
 definition MAX_UINT256() returns uint256 =
 	0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
@@ -93,7 +98,7 @@ invariant integrityOfLength()
 	poolLength() == lpTokenLength() && lpTokenLength() == rewarderLength()
 
 invariant validityOfLpToken(uint256 pid, address user)
-	(userInfoAmount(pid, user) > 0) => ( lpToken(pid) != 0 )
+	(userInfoAmount(pid, user) > 0) => (lpToken(pid) != 0)
 
 
 
@@ -516,6 +521,10 @@ rule updatePoolRevert(uint256 pid) {
 
 	require e.msg.value == 0;
 	require lpToken(pid) == tokenA || lpToken(pid) == tokenB;
+	require pid < poolLength();
+    require e.block.number <= MAX_UINT64();
+	require totalAllocPoint() != 0;
+	require (e.block.number - poolInfoLastRewardBlock(pid)) * sushiPerBlock(e) * poolInfoAllocPoint(pid) <= MAX_UINT256();
 
 	updatePool@withrevert(e, pid);
 	bool succ = !lastReverted;
@@ -523,12 +532,36 @@ rule updatePoolRevert(uint256 pid) {
 	assert(succ, "updatePoolReverted");
 }
 
+rule updatePoolAdditive(uint256 pid) {
+	env e1;
+	env e2;
 
+	require poolInfoLastRewardBlock(pid) < e1.block.number && e1.block.number < e2.block.number;
+
+	storage initStorage = lastStorage;
+
+	updatePool(e1, pid);
+	updatePool(e2, pid);
+
+	uint128 splitScenarioAccSushiPerShare = poolInfoAccSushiPerShare(pid);
+	uint64 splitScenarioLastRewardBlock = poolInfoLastRewardBlock(pid);
+	uint64 splitScenarioAllocPoint = poolInfoAllocPoint(pid);
+
+	updatePool(e2, pid) at initStorage;
+
+	uint128 finalScenarioAccSushiPerShare = poolInfoAccSushiPerShare(pid);
+	uint64 finalScenarioLastRewardBlock = poolInfoLastRewardBlock(pid);
+	uint64 finalScenarioAllocPoint = poolInfoAllocPoint(pid);
+
+	assert(splitScenarioAccSushiPerShare == finalScenarioAccSushiPerShare, "finalScenarioAccSushiPerShare");
+	assert(splitScenarioLastRewardBlock == finalScenarioLastRewardBlock, "finalScenarioLastRewardBlock");
+	assert(splitScenarioAllocPoint == splitScenarioAllocPoint, "splitScenarioAllocPoint");
+}
 
 // Helper Functions
 
 // easy to use dispatcher (to call all methods with the same pid)
-function callFunctionWithParams( method f, uint256 pid, address sender, address to) {
+function callFunctionWithParams(method f, uint256 pid, address sender, address to) {
 	env e;
 	uint256 allocPoint;
 	bool overwrite;
@@ -536,7 +569,7 @@ function callFunctionWithParams( method f, uint256 pid, address sender, address 
 	address rewarder;
 
 	require e.msg.sender == sender;
-	
+
 	if (f.selector == set(uint256, uint256, address, bool).selector) {
 		set(e, pid, allocPoint, rewarder, overwrite);
 	} else if (f.selector == pendingSushi(uint256, address).selector) {

@@ -20,7 +20,7 @@ contract MasterChefV2SimplifiedHarness is MasterChefV2Harness {
     }
 
     mapping(uint256 => mapping(uint256 => uint256)) symbolicSushiPerShare; // random number
-    function calculateSushiPerShare(uint256 sushiReward, uint256 lpSupply ) override internal returns (uint256) {
+    function calculateSushiPerShare(uint256 sushiReward, uint256 lpSupply ) override internal returns (uint128) {
         return (sushiReward.mul(ACC_SUSHI_PRECISION) / lpSupply).to128();
     }
 }
