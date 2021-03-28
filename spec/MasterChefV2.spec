@@ -100,8 +100,6 @@ invariant integrityOfLength()
 invariant validityOfLpToken(uint256 pid, address user)
 	(userInfoAmount(pid, user) > 0) => (lpToken(pid) != 0)
 
-
-
 // Invariants as Rules
 
 rule integrityOfTotalAllocPoint(method f) {
@@ -524,6 +522,7 @@ rule updatePoolRevert(uint256 pid) {
 	require pid < poolLength();
     require e.block.number <= MAX_UINT64();
 	require totalAllocPoint() != 0;
+	require (e.block.number - poolInfoLastRewardBlock(pid)) * sushiPerBlock(e) <= MAX_UINT256();
 	require (e.block.number - poolInfoLastRewardBlock(pid)) * sushiPerBlock(e) * poolInfoAllocPoint(pid) <= MAX_UINT256();
 
 	updatePool@withrevert(e, pid);

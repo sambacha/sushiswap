@@ -179,11 +179,11 @@ contract MasterChefV2 is BoringOwnable, BoringBatchable {
     }
 
     // have to assume additivity for updatePoolAdditive
-    function calculateSushiReward(uint256 blocks, uint64 poolAllocPoint) virtual internal returns (uint256) {
+    function calculateSushiReward(uint256 blocks, uint64 poolAllocPoint) public virtual returns (uint256) {
         return blocks.mul(sushiPerBlock()).mul(poolAllocPoint) / totalAllocPoint;
     }
 
-    function calculateSushiPerShare(uint256 sushiReward, uint256 lpSupply ) virtual internal returns (uint128) {
+    function calculateSushiPerShare(uint256 sushiReward, uint256 lpSupply) public virtual returns (uint128) {
         return (sushiReward.mul(ACC_SUSHI_PRECISION) / lpSupply).to128();
     }
 
