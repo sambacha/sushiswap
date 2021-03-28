@@ -57,7 +57,11 @@ methods {
 
 	// SUSHI token
 	SUSHI() returns (address) envfree
-	sushiToken.balanceOf(address) returns (uint256)  
+	sushiToken.balanceOf(address) returns (uint256)
+
+	// Dummy ERC20
+	tokenA.balanceOf(address) returns (uint256) // Not sure, check with Nurit
+	tokenB.balanceOf(address) returns (uint256) // Not sure, check with Nurit
 
 	// Rewarder
 	// SIG_ON_SUSHI_REWARD = 0xbb6cc2ef; // onSushiReward(uint256,address,uint256)
@@ -525,11 +529,63 @@ rule updatePoolRevert(uint256 pid) {
 	require (e.block.number - poolInfoLastRewardBlock(pid)) * sushiPerBlock(e) <= MAX_UINT256();
 	require (e.block.number - poolInfoLastRewardBlock(pid)) * sushiPerBlock(e) * poolInfoAllocPoint(pid) <= MAX_UINT256();
 
+	uint128 sushiPerShare;
+	
+	if (lpToken(pid) == tokenA) {
+		sushiPerShare = calculateSushiPerShare(e, 
+							calculateSushiReward(e, (e.block.number - poolInfoLastRewardBlock(pid)), poolInfoAllocPoint(pid)),
+							tokenA.balanceOf(e, currentContract)); 
+	} else {
+		sushiPerShare = calculateSushiPerShare(e, 
+							calculateSushiReward(e, (e.block.number - poolInfoLastRewardBlock(pid)),
+							poolInfoAllocPoint(pid)), tokenB.balanceOf(e, currentContract)); 
+	}
+
+	require poolInfoAccSushiPerShare(pid) + sushiPerShare <= MAX_UINT256();
+	
 	updatePool@withrevert(e, pid);
 	bool succ = !lastReverted;
 
 	assert(succ, "updatePoolReverted");
 }
+
+// To run this version: (times out if we test this way)
+// Add this to harness 
+// function lpSupply(uint256 pid) public view returns (uint256) {
+//     return lpToken[pid].balanceOf(address(this));
+// }
+// Add these to methods
+// lpSupply(uint256 pid) returns (uint256) envfree
+
+// // overrided methods
+// sushiPerBlock() returns (uint256)
+// calculateSushiReward(uint256, uint64) returns (uint256) envfree
+// calculateSushiPerShare(uint256, uint256) returns (uint128) envfree
+//
+// rule updatePoolRevert(uint256 pid) {
+//     env e;
+
+//     require e.msg.value == 0;
+//     require lpToken(pid) == tokenA || lpToken(pid) == tokenB;
+//     require pid < poolLength();
+//     require e.block.number <= MAX_UINT64();
+//     require totalAllocPoint() != 0;
+
+//     uint256 blocks = (e.block.number - poolInfoLastRewardBlock(pid));
+
+//     require blocks * sushiPerBlock(e) <= MAX_UINT256();
+//     require blocks * sushiPerBlock(e) * poolInfoAllocPoint(pid) <= MAX_UINT256();
+
+//     uint256 sushiReward = calculateSushiReward(blocks, poolInfoAllocPoint(pid));
+//     uint128 sushiPerShare = calculateSushiPerShare(sushiReward, lpSupply(pid));
+
+//     require poolInfoAccSushiPerShare(pid) + sushiPerShare <= MAX_UINT256();
+
+//     updatePool@withrevert(e, pid);
+//     bool succ = !lastReverted;
+
+//     assert(succ, "updatePoolReverted");
+// }
 
 rule updatePoolAdditive(uint256 pid) {
 	env e1;
