@@ -69,6 +69,8 @@ methods {
 
 	// MasterChefV1
 	deposit(uint256 pid, uint256 amount) => NONDET
+
+	lpSupply(uint256 pid) returns (uint256) envfree
 }
 
 // Constants
@@ -78,7 +80,7 @@ definition MAX_UINT64() returns uint64 = 0xFFFFFFFFFFFFFFFF;
 definition MAX_UINT256() returns uint256 =
 	0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
 
-// extract alloPoint field form the poolInfo packed struct
+// extract allocPoint field form the poolInfo packed struct
 definition PoolInfo_allocPoint(uint256 poolInfo) returns uint256 =
 	(poolInfo & 0xffffffffffffffff000000000000000000000000000000000000000000000000) >>> 192;
 
@@ -529,17 +531,9 @@ rule updatePoolRevert(uint256 pid) {
 	require (e.block.number - poolInfoLastRewardBlock(pid)) * sushiPerBlock(e) <= MAX_UINT256();
 	require (e.block.number - poolInfoLastRewardBlock(pid)) * sushiPerBlock(e) * poolInfoAllocPoint(pid) <= MAX_UINT256();
 
-	uint128 sushiPerShare;
-	
-	if (lpToken(pid) == tokenA) {
-		sushiPerShare = calculateSushiPerShare(e, 
-							calculateSushiReward(e, (e.block.number - poolInfoLastRewardBlock(pid)), poolInfoAllocPoint(pid)),
-							tokenA.balanceOf(e, currentContract)); 
-	} else {
-		sushiPerShare = calculateSushiPerShare(e, 
+	uint128 sushiPerShare = calculateSushiPerShare(e, 
 							calculateSushiReward(e, (e.block.number - poolInfoLastRewardBlock(pid)),
-							poolInfoAllocPoint(pid)), tokenB.balanceOf(e, currentContract)); 
-	}
+							poolInfoAllocPoint(pid)), lpSupply(pid)); 
 
 	require poolInfoAccSushiPerShare(pid) + sushiPerShare <= MAX_UINT256();
 	

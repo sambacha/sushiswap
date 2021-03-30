@@ -93,6 +93,10 @@ contract MasterChefV2Harness is MasterChefV2 {
         return a.mul(b);
     }
 
+    function lpSupply(uint256 pid) public view returns (uint256) {
+        return lpToken[pid].balanceOf(address(this));
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     //                     Helper Functions for Invariants                    //
     ////////////////////////////////////////////////////////////////////////////
