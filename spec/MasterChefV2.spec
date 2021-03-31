@@ -5,6 +5,9 @@
  * Run this file with scripts/_runMasterChefV2.sh
  */
 
+ // All Passing!
+ // https://vaas-stg.certora.com/output/98097/f985be9c8ac8adf6dd02/?anonymousKey=f1be86f1ac4a8f1df542a0ecd5fac48495fb32d4
+
 // Declaration of contracts used in the sepc 
 using DummyERC20A as tokenA
 using DummyERC20B as tokenB
@@ -30,7 +33,7 @@ methods {
 	rewarder(uint256 pid) returns (address) envfree
 
 	// overrided methods
-	sushiPerBlock() returns (uint256 amount)
+	sushiPerBlock() returns (uint256 amount) // NOT USED
 
 	// ERC20 
 	balanceOf(address) => DISPATCHER(true) 
@@ -42,13 +45,13 @@ methods {
 	
 	// General Helpers
 	compare(int256 x, int256 y) returns (bool) envfree // Helper to check <= for int256
-	intEquality(int256 x, int256 y) returns (bool) envfree // Helper to check int equality
+	intEquality(int256 x, int256 y) returns (bool) envfree // Helper to check int equality // NOT USED
 	compareUint128(uint128 x, uint128 y) returns (bool) envfree // Helper to check >= for uint128
-	intDeltaOne(int256 x, int256 y) returns (bool) envfree // Helper to allow a difference of 1 for int256
-	sub(uint256 a, int256 b) returns (int256) envfree
-	sub(int256 a, int256 b) returns (int256) envfree
-	sub(uint256 a, uint256 b) returns (int256) envfree
-	mul(uint256 a, uint256 b) returns (uint256) envfree
+	intDeltaOne(int256 x, int256 y) returns (bool) envfree // Helper to allow a difference of 1 for int256 // NOT USED
+	sub(uint256 a, int256 b) returns (int256) envfree // NOT USED
+	sub(int256 a, int256 b) returns (int256) envfree // NOT USED
+	sub(uint256 a, uint256 b) returns (int256) envfree // NOT USED
+	mul(uint256 a, uint256 b) returns (uint256) envfree // NOT USED
 
 	// Helper Invariant Functions
 	poolLength() returns (uint256) envfree
@@ -60,8 +63,8 @@ methods {
 	sushiToken.balanceOf(address) returns (uint256)
 
 	// Dummy ERC20
-	tokenA.balanceOf(address) returns (uint256) // Not sure, check with Nurit
-	tokenB.balanceOf(address) returns (uint256) // Not sure, check with Nurit
+	tokenA.balanceOf(address) returns (uint256) // Not sure, check with Nurit // NOT USED
+	tokenB.balanceOf(address) returns (uint256) // Not sure, check with Nurit // NOT USED
 
 	// Rewarder
 	// SIG_ON_SUSHI_REWARD = 0xbb6cc2ef; // onSushiReward(uint256,address,uint256)
@@ -70,12 +73,12 @@ methods {
 	// MasterChefV1
 	deposit(uint256 pid, uint256 amount) => NONDET
 
-	lpSupply(uint256 pid) returns (uint256) envfree
+	lpSupply(uint256 pid) returns (uint256) envfree // NOT USED
 }
 
 // Constants
 
-definition MAX_UINT64() returns uint64 = 0xFFFFFFFFFFFFFFFF;
+definition MAX_UINT64() returns uint64 = 0xFFFFFFFFFFFFFFFF; // NOT USED
 
 definition MAX_UINT256() returns uint256 =
 	0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
@@ -304,135 +307,23 @@ rule solvency(uint256 pid, address u, address lptoken, method f) {
 	assert userAmount_ != _userAmount => (userAmount_ - _userAmount == balance_ - _balance);
 }
 
-// rule solvencyOfSushiBalance(uint256 pid, address user, method f) {
-// 	env e;
-// 	require sushiToken == SUSHI();
+rule sushiGivenInHarvestEqualsPendingSushi(uint256 pid, address user, address to) {
+	env e;
 
-// 	uint256 _balance = sushiToken.balanceOf(e, currentContract);
+	require to == user && user != currentContract && e.msg.sender == user;
+	require sushiToken == SUSHI();
 
-// 	require e.block.number == poolInfoLastRewardBlock(pid);
+	uint256 userSushiBalance = sushiToken.balanceOf(e, user);
+	uint256 userPendingSushi = pendingSushi(e, pid, user);
 
-// 	uint128 accSushiPerShare = poolInfoAccSushiPerShare(pid);
-// 	uint256 _userInfoAmount = userInfoAmount(pid, user);
-// 	int256 _userInfoReward = userInfoRewardDebt(pid, user);
-// 	int256 _userSushi = sub(mul(accSushiPerShare, _userInfoAmount)  , _userInfoReward);
+	// Does success return value matters? Check with Nurit
+	harvest(e, pid, to);
 
-// 	calldataarg args;
-// 	f(e, args);
+	uint256 userSushiBalance_ = sushiToken.balanceOf(e, user);
 
-// 	uint256 balance_ = sushiToken.balanceOf(e, currentContract);
-// 	uint256 userInfoAmount_ = userInfoAmount(pid, user);
-// 	int256 userInfoReward_ = userInfoRewardDebt(pid, user);
-// 	int256 userSushi_ = sub( mul(accSushiPerShare,userInfoAmount_) , userInfoReward_);
-// 	int256 changeUserSushi = sub(userSushi_, _userSushi);
-// 	int256 changeSushiBalance = sub(balance_, _balance);
-
-// 	assert (userInfoAmount_ != _userInfoAmount || userInfoAmount_ != _userInfoAmount) =>
-// 		intEquality(changeUserSushi, changeSushiBalance) ;
-// }
-
-// rule correctEffectOfChangeToAllocPoint(uint256 pid, address user,
-// 									   uint256 allocPoint, bool overwrite) {
-// 	env e1;
-// 	env e2;
-// 	env e3;
-
-// 	require e2.block.number >= e1.block.number;
-// 	require e3.block.number >= e2.block.number;
-
-// 	uint256 _pendingSushi = pendingSushi(e1, pid, user);
-
-// 	updatePool(e2, pid);
-
-// 	address rewarder;
-// 	set(e2, pid, allocPoint, rewarder, overwrite);
-
-// 	uint256 pendingSushi_ = pendingSushi(e3, pid, user);
-
-// 	assert(pendingSushi_ >= _pendingSushi, 
-// 	       "The effect of changing allocPoint is incorrect");
-// }
-
-// rule sushiGivenInHarvestEqualsPendingSushi(uint256 pid, address user, address to) {
-// 	env e;
-
-// 	require to == user && user != currentContract && e.msg.sender == user;
-// 	require sushiToken == SUSHI();
-
-// 	uint256 userSushiBalance = sushiToken.balanceOf(e, user);
-// 	uint256 userPendingSushi = pendingSushi(e, pid, user);
-
-// 	// Does success return value matters? Check with Nurit
-// 	harvest(e, pid, to);
-
-// 	uint256 userSushiBalance_ = sushiToken.balanceOf(e, user);
-
-// 	assert(userSushiBalance_ == (userSushiBalance + userPendingSushi),
-// 		   "pending sushi not equal to the sushi given in harvest");
-// }
-
-// rule depositThenWithdraw(uint256 pid, address user, uint256 amount, address to) {
-// 	env e;
-
-// 	require e.msg.sender == to;
-
-// 	uint256 _userInfoAmount = userInfoAmount(pid, user);
-// 	int256 _userInfoRewardDebt = userInfoRewardDebt(pid, user);
-
-// 	deposit(e, pid, amount, to);
-// 	withdraw(e, pid, amount, to);
-
-// 	// TODO - see if we can check for non revert
-// 	// withdraw@withrevert(e, pid, amount, to);
-// 	// bool succ = !lastReverted;
-
-// 	uint256 userInfoAmount_ = userInfoAmount(pid, user);
-// 	int256 userInfoRewardDebt_ = userInfoRewardDebt(pid, user);
-
-// 	// assert(succ, "user can not withdraw");
-// 	assert(_userInfoAmount == userInfoAmount_, "user amount changed");
-// 	assert(intEquality(_userInfoRewardDebt, userInfoRewardDebt_),
-// 		   "user reward debt changed");
-// }
-
-// TODO: (3)
-// rule depositThenWithdrawWithRevert() {
-	
-// }
-
-// rule orderOfOperationWithdrawAndHarvest(uint256 pid, uint256 amount, address user) {
-// 	env e;
-// 	storage initStorage = lastStorage;
-
-// 	// call withdraw then harvest
-// 	withdraw(e, pid, amount, user);
-// 	harvest(e, pid, user);
-
-// 	uint128 splitScenarioAccSushiPerShare = poolInfoAccSushiPerShare(pid);
-// 	uint64 splitScenarioLastRewardBlock = poolInfoLastRewardBlock(pid);
-// 	uint64 splitScenarioAllocPoint = poolInfoAllocPoint(pid);
-
-// 	uint256 splitScenarioUserInfoAmount = userInfoAmount(pid, user);
-// 	int256 splitScenarioUserInfoRewardDebt = userInfoRewardDebt(pid, user);
-
-// 	// call harvest then withdraw at initStorage
-// 	harvest(e, pid, user) at initStorage;
-// 	withdraw(e, pid, amount, user);
-
-// 	uint128 finalScenarioAccSushiPerShare = poolInfoAccSushiPerShare(pid);
-// 	uint64 finalScenarioLastRewardBlock = poolInfoLastRewardBlock(pid);
-// 	uint64 finalScenarioAllocPoint = poolInfoAllocPoint(pid);
-
-// 	uint256 finalScenarioUserInfoAmount = userInfoAmount(pid, user);
-// 	int256 finalScenarioUserInfoRewardDebt = userInfoRewardDebt(pid, user);
-
-// 	assert(splitScenarioAccSushiPerShare == finalScenarioAccSushiPerShare, "finalScenarioAccSushiPerShare");
-// 	assert(splitScenarioLastRewardBlock == finalScenarioLastRewardBlock, "finalScenarioLastRewardBlock");
-// 	assert(splitScenarioAllocPoint == splitScenarioAllocPoint, "splitScenarioAllocPoint");
-
-// 	assert(splitScenarioUserInfoAmount == finalScenarioUserInfoAmount, "finalScenarioUserInfoAmount");
-// 	assert(intDeltaOne(splitScenarioUserInfoRewardDebt, finalScenarioUserInfoRewardDebt), "finalScenarioUserInfoRewardDebt");
-// }
+	assert(userSushiBalance_ == (userSushiBalance + userPendingSushi),
+		   "pending sushi not equal to the sushi given in harvest");
+}
 
 rule additivityOfDepositOnAmount(uint256 pid, uint256 x, uint256 y, address to) {
 	env e;
@@ -458,25 +349,6 @@ rule additivityOfDepositOnAmount(uint256 pid, uint256 x, uint256 y, address to) 
 		   "deposit is not additive on amount");
 }
 
-// rule additivityOfDepositOnRewardDebt(uint256 pid, uint256 x, uint256 y, address to) {
-// 	env e;
-// 	storage initStorage = lastStorage;
-
-// 	deposit(e, pid, x, to);
-// 	deposit(e, pid, y, to);
-
-// 	int256 splitScenarioUserRewardDebt = userInfoRewardDebt(pid, to);
-
-// 	require x + y <= MAX_UINT256();
-// 	uint256 sum = x + y;
-// 	deposit(e, pid, sum, to) at initStorage;
-	
-// 	int256 sumScenarioUserRewardDebt = userInfoRewardDebt(pid, to);
-
-// 	assert(intEquality(splitScenarioUserRewardDebt, sumScenarioUserRewardDebt), 
-// 		   "deposit is not additive on rewardDebt");
-// }
-
 rule additivityOfWithdrawOnAmount(uint256 pid, uint256 x, uint256 y, address to) {
 	env e;
 	storage initStorage = lastStorage;
@@ -500,112 +372,6 @@ rule additivityOfWithdrawOnAmount(uint256 pid, uint256 x, uint256 y, address to)
 	assert(splitScenarioToBalanceOf == sumScenarioToBalanceOf, 
 		   "withdraw is not additive on amount");
 }
-
-// rule additivityOfWithdrawOnRewardDebt(uint256 pid, uint256 x, uint256 y, address to) {
-// 	env e;
-// 	storage initStorage = lastStorage;
-
-// 	withdraw(e, pid, x, to);
-// 	withdraw(e, pid, y, to);
-
-// 	int256 splitScenarioUserRewardDebt = userInfoRewardDebt(pid, to);
-
-// 	require x + y <= MAX_UINT256();
-// 	uint256 sum = x + y;
-// 	withdraw(e, pid, sum, to) at initStorage;
-	
-// 	int256 sumScenarioUserRewardDebt = userInfoRewardDebt(pid, to);
-
-// 	assert(intEquality(splitScenarioUserRewardDebt, sumScenarioUserRewardDebt), 
-// 		   "withdraw is not additive on rewardDebt");
-// }
-
-// rule updatePoolRevert(uint256 pid) {
-// 	env e;
-
-// 	require e.msg.value == 0;
-// 	require lpToken(pid) == tokenA || lpToken(pid) == tokenB;
-// 	require pid < poolLength();
-//     require e.block.number <= MAX_UINT64();
-// 	require totalAllocPoint() != 0;
-// 	require (e.block.number - poolInfoLastRewardBlock(pid)) * sushiPerBlock(e) <= MAX_UINT256();
-// 	require (e.block.number - poolInfoLastRewardBlock(pid)) * sushiPerBlock(e) * poolInfoAllocPoint(pid) <= MAX_UINT256();
-
-// 	uint128 sushiPerShare = calculateSushiPerShare(e, 
-// 							calculateSushiReward(e, (e.block.number - poolInfoLastRewardBlock(pid)),
-// 							poolInfoAllocPoint(pid)), lpSupply(pid)); 
-
-// 	require poolInfoAccSushiPerShare(pid) + sushiPerShare <= MAX_UINT256();
-	
-// 	updatePool@withrevert(e, pid);
-// 	bool succ = !lastReverted;
-
-// 	assert(succ, "updatePoolReverted");
-// }
-
-// To run this version: (times out if we test this way)
-// Add this to harness 
-// function lpSupply(uint256 pid) public view returns (uint256) {
-//     return lpToken[pid].balanceOf(address(this));
-// }
-// Add these to methods
-// lpSupply(uint256 pid) returns (uint256) envfree
-
-// // overrided methods
-// sushiPerBlock() returns (uint256)
-// calculateSushiReward(uint256, uint64) returns (uint256) envfree
-// calculateSushiPerShare(uint256, uint256) returns (uint128) envfree
-//
-// rule updatePoolRevert(uint256 pid) {
-//     env e;
-
-//     require e.msg.value == 0;
-//     require lpToken(pid) == tokenA || lpToken(pid) == tokenB;
-//     require pid < poolLength();
-//     require e.block.number <= MAX_UINT64();
-//     require totalAllocPoint() != 0;
-
-//     uint256 blocks = (e.block.number - poolInfoLastRewardBlock(pid));
-
-//     require blocks * sushiPerBlock(e) <= MAX_UINT256();
-//     require blocks * sushiPerBlock(e) * poolInfoAllocPoint(pid) <= MAX_UINT256();
-
-//     uint256 sushiReward = calculateSushiReward(blocks, poolInfoAllocPoint(pid));
-//     uint128 sushiPerShare = calculateSushiPerShare(sushiReward, lpSupply(pid));
-
-//     require poolInfoAccSushiPerShare(pid) + sushiPerShare <= MAX_UINT256();
-
-//     updatePool@withrevert(e, pid);
-//     bool succ = !lastReverted;
-
-//     assert(succ, "updatePoolReverted");
-// }
-
-// rule updatePoolAdditive(uint256 pid) {
-// 	env e1;
-// 	env e2;
-
-// 	require poolInfoLastRewardBlock(pid) < e1.block.number && e1.block.number < e2.block.number;
-
-// 	storage initStorage = lastStorage;
-
-// 	updatePool(e1, pid);
-// 	updatePool(e2, pid);
-
-// 	uint128 splitScenarioAccSushiPerShare = poolInfoAccSushiPerShare(pid);
-// 	uint64 splitScenarioLastRewardBlock = poolInfoLastRewardBlock(pid);
-// 	uint64 splitScenarioAllocPoint = poolInfoAllocPoint(pid);
-
-// 	updatePool(e2, pid) at initStorage;
-
-// 	uint128 finalScenarioAccSushiPerShare = poolInfoAccSushiPerShare(pid);
-// 	uint64 finalScenarioLastRewardBlock = poolInfoLastRewardBlock(pid);
-// 	uint64 finalScenarioAllocPoint = poolInfoAllocPoint(pid);
-
-// 	assert(splitScenarioAccSushiPerShare == finalScenarioAccSushiPerShare, "finalScenarioAccSushiPerShare");
-// 	assert(splitScenarioLastRewardBlock == finalScenarioLastRewardBlock, "finalScenarioLastRewardBlock");
-// 	assert(splitScenarioAllocPoint == splitScenarioAllocPoint, "splitScenarioAllocPoint");
-// }
 
 // Helper Functions
 

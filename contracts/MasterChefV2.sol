@@ -57,8 +57,8 @@ contract MasterChefV2 is BoringOwnable, BoringBatchable {
     /// @dev Total allocation points. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint;
 
-    uint256 private constant MASTERCHEF_SUSHI_PER_BLOCK = 1e20; // 1000 if want to simplify
-    uint256 public constant ACC_SUSHI_PRECISION = 1e12; // 10 if want to simplify
+    uint256 private constant MASTERCHEF_SUSHI_PER_BLOCK = 1e20;
+    uint256 public constant ACC_SUSHI_PRECISION = 1e12;
     bytes4 private constant SIG_ON_SUSHI_REWARD = 0xbb6cc2ef; // onSushiReward(uint256,address,uint256)
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount, address indexed to);
@@ -139,8 +139,8 @@ contract MasterChefV2 is BoringOwnable, BoringBatchable {
         uint256 lpSupply = lpToken[_pid].balanceOf(address(this));
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
             uint256 blocks = block.number.sub(pool.lastRewardBlock);
-            uint256 sushiReward = calculateSushiReward(blocks, pool.allocPoint); 
-            accSushiPerShare = pool.accSushiPerShare.add(calculateSushiPerShare(sushiReward, lpSupply)); 
+            uint256 sushiReward = calculateSushiReward(blocks, pool.allocPoint);
+            accSushiPerShare = pool.accSushiPerShare.add(calculateSushiPerShare(sushiReward, lpSupply));
         }
         pending = int256(user.amount.mul(accSushiPerShare) / ACC_SUSHI_PRECISION).sub(user.rewardDebt).toUInt256();
     }
