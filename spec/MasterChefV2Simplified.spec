@@ -2,7 +2,7 @@
  * This is a specification file for MasterChefV2's formal verification
  * using the Certora prover.
  *
- * Run this file with scripts/_runMasterChefV2.sh
+ * Run this file with scripts/_runMasterChefV2Simplified.sh
  */
 
 // Declaration of contracts used in the sepc 
