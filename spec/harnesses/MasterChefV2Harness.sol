@@ -51,7 +51,6 @@ contract MasterChefV2Harness is MasterChefV2 {
     ////////////////////////////////////////////////////////////////////////////
     //                            General Helpers                             //
     ////////////////////////////////////////////////////////////////////////////
-
     // helpers for int operations since in spec it is not possible
     function compare(int256 x, int256 y) external pure returns (bool) {
 		return x <= y;
