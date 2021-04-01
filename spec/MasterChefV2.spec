@@ -22,7 +22,7 @@ methods {
 	// Getters for the internals
 	userInfoAmount(uint256 pid, address user) returns (uint256) envfree 
 	userInfoRewardDebt(uint256 pid, address user) returns (int256) envfree 
-	userLpTokenBalanceOf(uint256 pid, address user) returns (uint256) envfree // How to remove this? (Ask Nurit)
+	userLpTokenBalanceOf(uint256 pid, address user) returns (uint256) envfree
 
 	poolInfoAccSushiPerShare(uint256 pid) returns (uint128) envfree
 	poolInfoLastRewardBlock(uint256 pid) returns (uint64) envfree
@@ -31,9 +31,6 @@ methods {
 
 	lpToken(uint256 pid) returns (address) envfree
 	rewarder(uint256 pid) returns (address) envfree
-
-	// overrided methods
-	sushiPerBlock() returns (uint256 amount) // NOT USED
 
 	// ERC20 
 	balanceOf(address) => DISPATCHER(true) 
@@ -45,13 +42,7 @@ methods {
 	
 	// General Helpers
 	compare(int256 x, int256 y) returns (bool) envfree // Helper to check <= for int256
-	intEquality(int256 x, int256 y) returns (bool) envfree // Helper to check int equality // NOT USED
 	compareUint128(uint128 x, uint128 y) returns (bool) envfree // Helper to check >= for uint128
-	intDeltaOne(int256 x, int256 y) returns (bool) envfree // Helper to allow a difference of 1 for int256 // NOT USED
-	sub(uint256 a, int256 b) returns (int256) envfree // NOT USED
-	sub(int256 a, int256 b) returns (int256) envfree // NOT USED
-	sub(uint256 a, uint256 b) returns (int256) envfree // NOT USED
-	mul(uint256 a, uint256 b) returns (uint256) envfree // NOT USED
 
 	// Helper Invariant Functions
 	poolLength() returns (uint256) envfree
@@ -62,23 +53,15 @@ methods {
 	SUSHI() returns (address) envfree
 	sushiToken.balanceOf(address) returns (uint256)
 
-	// Dummy ERC20
-	tokenA.balanceOf(address) returns (uint256) // Not sure, check with Nurit // NOT USED
-	tokenB.balanceOf(address) returns (uint256) // Not sure, check with Nurit // NOT USED
-
 	// Rewarder
 	// SIG_ON_SUSHI_REWARD = 0xbb6cc2ef; // onSushiReward(uint256,address,uint256)
 	0xbb6cc2ef => NONDET
 
 	// MasterChefV1
 	deposit(uint256 pid, uint256 amount) => NONDET
-
-	lpSupply(uint256 pid) returns (uint256) envfree // NOT USED
 }
 
 // Constants
-
-definition MAX_UINT64() returns uint64 = 0xFFFFFFFFFFFFFFFF; // NOT USED
 
 definition MAX_UINT256() returns uint256 =
 	0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
