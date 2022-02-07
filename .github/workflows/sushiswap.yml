@@ -5,8 +5,33 @@ on:
   # Triggers the workflow on push or pull request events but only for the master branch
   push:
     branches: [ master ]
+      
   pull_request:
     branches: [ master ]
+
+  pull_request_target:
+    branches:
+    - master
+    - develop
+
+# ensure permissions are explicitly defined
+# by configuring one we disable the remaining permissions
+# see: https://docs.github.com/en/actions/learn-github-actions/workflow-syntax-for-github-actions#jobsjob_idpermissions
+# permissions:
+#  contents: read
+
+# ensure multiple CI processes are not running analysis on contracts
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request_target' && github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: true
+  COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+  PULL_NUMBER: ${{ github.event.pull_request.number }}
+  RUN_ID: ${{ github.run_id }}
+  FORCE_COLOR: 2
+
 
 jobs:
   build:
@@ -15,7 +40,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ["14.x", "12.x"]
+        node: ["14.x"]
         os: ["ubuntu-latest"]
 
     steps:
@@ -29,7 +54,9 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           check-latest: true
-
+          always-auth: true
+          registry-url: https://registry.npmjs.org
+          
       - name: Install and Compile
         run: |
           yarn install
