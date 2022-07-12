@@ -1,0 +1,80 @@
+name: pipeline-release
+
+on:
+  push:
+
+concurrency:
+  group: ci-tests-${{ github.ref }}-1
+  cancel-in-progress: true
+
+jobs:
+  pipeline:
+    name: Node ${{ matrix.node-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['16.x']
+        os: ['ubuntu-latest']
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+
+      - uses: actions/cache@v3
+        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+      - name: Turbo Cache
+        uses: actions/cache@v3.0.4
+        with:
+            path: .turbo
+            key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
+            restore-keys: |
+              turbo-${{ github.job }}-${{ github.ref_name }}-
+      - run: yarn install --prefer-offline
+        id: install
+
+      - run: npm i -g lerna
+        id: lerna
+
+      - run: yarn turbo run build --cache-dir=.turbo
+        id: turbo
+
+      - run: lerna exec npm pack
+        id: pack
+
+      - run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+
+      - name: Generate index
+        uses: docker://sourcegraph/scip-typescript:latest
+        with:
+          args: scip-typescript index
+      - name: Upload index
+        uses: docker://sourcegraph/src-cli:latest
+        with:
+          # this will upload to Sourcegraph.com, you may need to substitute a different command
+          # by default, we ignore failures to avoid disrupting CI pipelines with non-critical errors.
+          args: lsif upload -github-token=${{ secrets.GITHUB_TOKEN }} -ignore-upload-failure
+
+
+      - uses: 'marvinpinto/action-automatic-releases@latest'
+        with:
+          repo_token: '${{ secrets.GITHUB_TOKEN }}'
+          automatic_release_tag: 'latest'
+          prerelease: true
+          files: |
+            LICENSE*
+            packages/**/*.tgz
+        id: 'automatic_releases'
